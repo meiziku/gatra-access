@@ -102,6 +102,12 @@ export default function LaporanHasilUsahaPage() {
       else if (t.description === "Beban Admin Bank") {
         DUMMY_PENGELUARAN["Jasa Bank"][monthIndex] += nominal;
       }
+      else if (PENDAPATAN_COA.includes(t.description)) {
+        DUMMY_PENDAPATAN[t.description][monthIndex] += nominal;
+      }
+      else if (PENGELUARAN_COA.includes(t.description)) {
+        DUMMY_PENGELUARAN[t.description][monthIndex] += nominal;
+      }
     });
   }
 
@@ -158,7 +164,7 @@ export default function LaporanHasilUsahaPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
+          <button onClick={() => window.print()} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
             <Download className="w-4 h-4" />
             Download PDF
           </button>

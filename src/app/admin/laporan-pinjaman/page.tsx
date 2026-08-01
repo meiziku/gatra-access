@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Filter, Download, CreditCard, ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2, ChevronRight, HandCoins, X } from "lucide-react";
+import { Search, Filter, Download, CreditCard, ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2, ChevronRight, HandCoins, X, Upload } from "lucide-react";
 import { useAnggota } from "@/context/AnggotaContext";
 
 // Mock Data
 export default function LaporanPinjamanPage() {
-  const { transactions } = useAnggota();
+  const { transactions, currentRole } = useAnggota();
   const [searchQuery, setSearchQuery] = useState("");
   const [showBelumLunas, setShowBelumLunas] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
@@ -39,7 +39,7 @@ export default function LaporanPinjamanPage() {
       summaryPlafon += plafon;
       summarySisaPokok += sisaPokok;
       summaryJasa += totalJasa; // or potential interest? We just use total collected for now
-      if (status === "Macet" || status === "Diragukan") nplCount++;
+      if (status === "Macet") nplCount++;
 
       dummyData.push({
         id: loan.memberId || "-",
@@ -68,6 +68,35 @@ export default function LaporanPinjamanPage() {
     return matchSearch && matchBelumLunas && matchStatus;
   });
 
+  const handleExportExcel = () => {
+    const headers = ["ID", "Nama Anggota", "No. Referensi", "Tanggal Cair", "Total Plafon", "Sisa Pokok", "Sisa Tenor", "Status"];
+    const rows = filteredData.map(d => [
+      d.id,
+      d.nama,
+      d.noRef,
+      d.tglCair,
+      d.plafon,
+      d.sisaPokok,
+      d.tenorSisa,
+      d.status
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map((v: any) => `"${v}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const today = new Date();
+    link.setAttribute("download", `Laporan_Pinjaman_${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case "Lancar": return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200 shadow-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Lancar</span>;
@@ -95,10 +124,15 @@ export default function LaporanPinjamanPage() {
             <p className="text-gray-500 text-sm mt-1">Pemantauan kolektibilitas dan sisa pokok pinjaman anggota.</p>
           </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </button>
+        </div>
       </div>
 
       {/* Metrics */}
@@ -238,35 +272,35 @@ export default function LaporanPinjamanPage() {
 
       {/* Modal Detail Pinjaman */}
       {selectedDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedDetail(null)}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Detail Pinjaman</h3>
-                <p className="text-sm text-gray-500">{selectedDetail.noRef} • {selectedDetail.nama}</p>
+                <h3 className="font-bold text-gray-800 text-lg">Detail Pinjaman: {selectedDetail.nama}</h3>
+                <p className="text-sm text-gray-500">Ref: {selectedDetail.noRef}</p>
               </div>
-              <button onClick={() => setSelectedDetail(null)} className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-5 h-5" />
+              <button onClick={() => setSelectedDetail(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-6 h-6" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Ringkasan */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500 mb-1">Total Plafon</p>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Total Plafon</p>
                   <p className="font-bold text-gray-800">{formatCurrency(selectedDetail.plafon)}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500 mb-1">Sisa Pokok</p>
+                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Sisa Pokok</p>
                   <p className="font-bold text-blue-700">{formatCurrency(selectedDetail.sisaPokok)}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <p className="text-xs text-gray-500 mb-1">Progress Tenor</p>
-                  <p className="font-bold text-gray-800">{selectedDetail.tenorTotal - selectedDetail.tenorSisa} / {selectedDetail.tenorTotal} Bln</p>
+                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Sisa Tenor</p>
+                  <p className="font-bold text-gray-800">{selectedDetail.tenorSisa} Bulan</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col justify-center">
-                  <p className="text-xs text-gray-500 mb-1">Status Kelancaran</p>
+                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 flex flex-col justify-center">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Status Kelancaran</p>
                   <div>{getStatusBadge(selectedDetail.status)}</div>
                 </div>
               </div>
@@ -285,44 +319,47 @@ export default function LaporanPinjamanPage() {
                 </div>
               </div>
 
-              {/* Riwayat Pembayaran (Dummy) */}
               <div>
-                <h4 className="font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2">Riwayat Pembayaran Terakhir</h4>
-                <div className="border border-gray-100 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <HandCoins className="w-4 h-4 text-emerald-600" />
+                  Riwayat Angsuran & Jasa
+                </h4>
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-4 py-3">Tanggal</th>
-                        <th className="px-4 py-3">Angsuran Ke</th>
-                        <th className="px-4 py-3 text-right">Pokok</th>
-                        <th className="px-4 py-3 text-right">Bunga/Jasa</th>
-                        <th className="px-4 py-3 text-right">Total Bayar</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-600">Tanggal</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-600">Jenis</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-600 text-right">Nominal</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {Array.from({ length: Math.min(5, selectedDetail.tenorTotal - selectedDetail.tenorSisa) }).map((_, i) => {
-                        let monthStr = (new Date().getMonth() - i <= 0 ? 12 + (new Date().getMonth() - i) : new Date().getMonth() - i).toString().padStart(2, '0');
-                        let year = new Date().getMonth() - i <= 0 ? new Date().getFullYear() - 1 : new Date().getFullYear();
-                        return (
-                          <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-gray-700">10-{monthStr}-{year}</td>
-                            <td className="px-4 py-3 text-gray-600">Bulan ke-{selectedDetail.tenorTotal - selectedDetail.tenorSisa - i}</td>
-                            <td className="px-4 py-3 text-right font-mono text-gray-600">{formatCurrency(selectedDetail.plafon / selectedDetail.tenorTotal)}</td>
-                            <td className="px-4 py-3 text-right font-mono text-gray-600">{formatCurrency((selectedDetail.plafon * 0.015))}</td>
-                            <td className="px-4 py-3 text-right font-mono font-bold text-gray-800">{formatCurrency((selectedDetail.plafon / selectedDetail.tenorTotal) + (selectedDetail.plafon * 0.015))}</td>
-                          </tr>
-                        );
-                      })}
-                      {selectedDetail.tenorTotal - selectedDetail.tenorSisa === 0 && (
+                      {selectedDetail.angsuranList && selectedDetail.angsuranList.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">Belum ada riwayat pembayaran.</td>
+                          <td colSpan={3} className="px-4 py-8 text-center text-gray-500 text-sm">
+                            Belum ada riwayat pembayaran untuk pinjaman ini.
+                          </td>
                         </tr>
                       )}
+                      {selectedDetail.angsuranList && selectedDetail.angsuranList.map((tx: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-sm text-gray-600">{tx.date}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-800">{tx.description}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-emerald-600 text-right">
+                            {formatCurrency(Math.max(tx.debit, tx.kredit))}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button onClick={() => setSelectedDetail(null)} className="px-6 py-2.5 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-colors shadow-md font-medium text-sm">
+                Tutup
+              </button>
             </div>
           </div>
         </div>

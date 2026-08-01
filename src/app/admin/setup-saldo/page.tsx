@@ -8,23 +8,19 @@ import {
   CheckCircle2, 
   Save, 
   Info,
-  Database
+  Database,
+  Users
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function SetupSaldoPage() {
+  const { coaNeraca, saldoAwalKoperasi, setSaldoAwalKoperasi, members, setTransactions } = useAnggota();
   const [activeTab, setActiveTab] = useState<"import" | "manual">("import");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Manual Input State
-  const [saldoAwal, setSaldoAwal] = useState({
-    kasTunai: "0",
-    bankBCA: "0",
-    bankMandiri: "0",
-    modalKoperasi: "0",
-    danaCadangan: "0",
-  });
+
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -54,9 +50,11 @@ export default function SetupSaldoPage() {
     }, 2000);
   };
 
-  const handleSaveManual = () => {
+  const handleSaveKoperasi = () => {
     alert("Saldo awal koperasi berhasil disimpan!");
   };
+
+
 
   const formatRupiah = (val: string) => {
     const num = parseInt(val.replace(/[^0-9]/g, '')) || 0;
@@ -98,6 +96,7 @@ export default function SetupSaldoPage() {
           <Database className="w-4 h-4" />
           Setup Saldo Koperasi
         </button>
+
       </div>
 
       {/* Tab 1: Import Excel */}
@@ -217,90 +216,55 @@ export default function SetupSaldoPage() {
               {/* Kolom Aset */}
               <div className="space-y-4">
                 <div className="pb-2 border-b border-gray-100">
-                  <h4 className="font-semibold text-gray-900">Aset Kas & Bank (Debit)</h4>
+                  <h4 className="font-semibold text-gray-900">Aset (Debit)</h4>
                 </div>
                 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Kas Tunai (Toko/Kasir)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
-                    <input 
-                      type="text" 
-                      value={formatRupiah(saldoAwal.kasTunai).replace('Rp', '').trim()}
-                      onChange={(e) => setSaldoAwal({...saldoAwal, kasTunai: e.target.value})}
-                      className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                    />
+                {[...(coaNeraca?.asetLancar || []), ...(coaNeraca?.asetTetap || [])].map((item: any) => (
+                  <div key={item.id}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {item.name}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
+                      <input 
+                        type="text" 
+                        value={formatRupiah((saldoAwalKoperasi[item.name] || 0).toString()).replace('Rp', '').trim()}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value.replace(/\D/g, '')) || 0;
+                          setSaldoAwalKoperasi({...saldoAwalKoperasi, [item.name]: val});
+                        }}
+                        className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Saldo Bank BCA
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
-                    <input 
-                      type="text" 
-                      value={formatRupiah(saldoAwal.bankBCA).replace('Rp', '').trim()}
-                      onChange={(e) => setSaldoAwal({...saldoAwal, bankBCA: e.target.value})}
-                      className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Saldo Bank Mandiri
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
-                    <input 
-                      type="text" 
-                      value={formatRupiah(saldoAwal.bankMandiri).replace('Rp', '').trim()}
-                      onChange={(e) => setSaldoAwal({...saldoAwal, bankMandiri: e.target.value})}
-                      className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Kolom Modal/Ekuitas */}
               <div className="space-y-4">
                 <div className="pb-2 border-b border-gray-100">
-                  <h4 className="font-semibold text-gray-900">Ekuitas & Kewajiban (Kredit)</h4>
+                  <h4 className="font-semibold text-gray-900">Kewajiban & Ekuitas (Kredit)</h4>
                 </div>
                 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Modal Disetor Koperasi
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
-                    <input 
-                      type="text" 
-                      value={formatRupiah(saldoAwal.modalKoperasi).replace('Rp', '').trim()}
-                      onChange={(e) => setSaldoAwal({...saldoAwal, modalKoperasi: e.target.value})}
-                      className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                    />
+                {[...(coaNeraca?.kewajibanLancar || []), ...(coaNeraca?.dana || []), ...(coaNeraca?.ekuitas || [])].map((item: any) => (
+                  <div key={item.id}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {item.name}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
+                      <input 
+                        type="text" 
+                        value={formatRupiah((saldoAwalKoperasi[item.name] || 0).toString()).replace('Rp', '').trim()}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value.replace(/\D/g, '')) || 0;
+                          setSaldoAwalKoperasi({...saldoAwalKoperasi, [item.name]: val});
+                        }}
+                        className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                    Dana Cadangan (SHU Lalu)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-medium">Rp</div>
-                    <input 
-                      type="text" 
-                      value={formatRupiah(saldoAwal.danaCadangan).replace('Rp', '').trim()}
-                      onChange={(e) => setSaldoAwal({...saldoAwal, danaCadangan: e.target.value})}
-                      className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" 
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
 
             </div>
@@ -311,7 +275,7 @@ export default function SetupSaldoPage() {
                 <span className="font-bold text-emerald-600">Seimbang (Balanced)</span>
               </div>
               <button 
-                onClick={handleSaveManual}
+                onClick={handleSaveKoperasi}
                 className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-colors"
               >
                 <Save className="w-4 h-4" />

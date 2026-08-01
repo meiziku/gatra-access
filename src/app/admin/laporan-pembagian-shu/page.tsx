@@ -1,12 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Download,
   Filter,
   Printer,
   FileText
 } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
+
+const PENDAPATAN_COA = [
+  "Pendapatan Bunga Pinjaman",
+  "Pendapatan Penjualan Produk",
+  "Pendapatan Penjualan Jasa",
+  "Pendapatan Bunga Bank",
+  "Pendapatan Lain-Lain"
+];
+
+const PENGELUARAN_COA = [
+  "Jasa Simpanan Sukarela",
+  "Jasa Bank",
+  "Beban Asuransi",
+  "Beban Audit",
+  "Beban Pajak",
+  "Beban Rapat",
+  "Beban Perjalanan Dinas",
+  "Beban Pelatihan",
+  "Beban Honor Pengurus",
+  "Beban Organisasi",
+  "Beban Gaji Karyawan",
+  "Beban Konsumsi",
+  "Beban ATK",
+  "Beban Listrik, Telepon dan Air",
+  "Beban Internet",
+  "Beban Ongkos Kirim",
+  "Beban Perbaikan dan Pemeliharaan",
+  "Beban Operasional",
+  "Beban Sewa",
+  "Beban Pembelian Aset",
+  "Beban Penyusutan Inventaris"
+];
 
 // Helper angka ribuan
 const formatRupiah = (angka: number) => {
@@ -29,9 +62,45 @@ const ALOKASI_SHU = [
 
 export default function LaporanPembagianSHUPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
+  const { transactions } = useAnggota();
   
   // State untuk input base SHU
   const [baseShuString, setBaseShuString] = useState("0");
+  
+  useEffect(() => {
+    let shuTahunBerjalan = 0;
+    if (transactions) {
+      transactions.forEach((t: any) => {
+        if (!t.isMutasi) {
+          let txYear = "";
+          if (t.date && t.date.includes("/")) {
+            const parts = t.date.split("/");
+            if (parts.length >= 3) txYear = parts[2];
+          }
+          
+          if (txYear === selectedYear) {
+            const nominalTx = Math.max(t.kredit, t.debit);
+            if (t.description === "Jasa / Bunga") {
+              shuTahunBerjalan += nominalTx;
+            } else if (t.description === "Jasa Bank") {
+              if (t.debit > 0) {
+                shuTahunBerjalan += nominalTx;
+              } else {
+                shuTahunBerjalan -= nominalTx;
+              }
+            } else if (t.description === "Beban Admin Bank") {
+              shuTahunBerjalan -= nominalTx;
+            } else if (PENDAPATAN_COA.includes(t.description)) {
+              shuTahunBerjalan += nominalTx;
+            } else if (PENGELUARAN_COA.includes(t.description)) {
+              shuTahunBerjalan -= nominalTx;
+            }
+          }
+        }
+      });
+    }
+    setBaseShuString(new Intl.NumberFormat("id-ID").format(shuTahunBerjalan));
+  }, [transactions, selectedYear]);
   
   // Mengonversi input string (dengan titik) menjadi number
   const baseShu = parseInt(baseShuString.replace(/\./g, "")) || 0;
@@ -71,7 +140,7 @@ export default function LaporanPembagianSHUPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
+          <button onClick={() => window.print()} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
             <Download className="w-4 h-4" />
             Download PDF
           </button>

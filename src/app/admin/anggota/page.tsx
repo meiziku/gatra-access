@@ -12,7 +12,8 @@ import {
   Download,
   Upload,
   ArrowUpDown,
-  X
+  X,
+  CheckCircle
 } from "lucide-react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -23,6 +24,7 @@ export default function DataAnggotaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<{isOpen: boolean, msg: string}>({isOpen: false, msg: ""});
   
   const { members, setMembers } = useAnggota();
 
@@ -151,9 +153,9 @@ export default function DataAnggotaPage() {
       });
       
       if (skippedIds.length > 0) {
-        alert(`Import selesai. Terdapat ${skippedIds.length} anggota yang dilewati karena ID sudah terdaftar:\n${skippedIds.join(', ')}`);
+        setImportSuccess({isOpen: true, msg: `Import selesai. Terdapat ${skippedIds.length} anggota yang dilewati karena ID sudah terdaftar:\n${skippedIds.join(', ')}`});
       } else if (newImportedMembers.length > 0) {
-        alert(`Berhasil mengimpor ${newImportedMembers.length} anggota.`);
+        setImportSuccess({isOpen: true, msg: `Berhasil mengimpor ${newImportedMembers.length} anggota.`});
       }
       
       setMembers([...newImportedMembers, ...members]);

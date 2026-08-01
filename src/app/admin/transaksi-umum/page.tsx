@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { 
-  Search, 
-  Filter, 
-  PlusCircle, 
+import {
+  Search,
+  Filter,
   Download,
   Upload,
-  ArrowUpDown,
-  BookOpen,
+  PlusCircle,
+  Calendar,
+  CreditCard,
   ArrowDownLeft,
   ArrowUpRight,
   Edit2,
@@ -16,9 +16,10 @@ import {
   X,
   ChevronDown,
   ArrowRightLeft,
-  Building2
+  Building2,
+  BookOpen
 } from "lucide-react";
-// Dummy data dihapus karena tidak ada transaksi anggota
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Helper untuk format tanggal hari ini DD/MM/YYYY
 const getTodayStr = () => {
@@ -47,6 +48,8 @@ const getLastDayOfMonth = () => {
 
 export default function TransaksiUmumPage() {
   const [isMutasiModalOpen, setIsMutasiModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, txId: string}>({isOpen: false, txId: ""});
+  const [editModal, setEditModal] = useState<{isOpen: boolean, tx: any, newVal: string}>({isOpen: false, tx: null, newVal: ""});
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
@@ -87,21 +90,36 @@ export default function TransaksiUmumPage() {
   const [transaksiDateStr, setTransaksiDateStr] = useState(getTodayStr());
   const [transaksiType, setTransaksiType] = useState("pengeluaran"); // pemasukan / pengeluaran
   const [transaksiCategory, setTransaksiCategory] = useState("");
+  const [transaksiCategorySearch, setTransaksiCategorySearch] = useState("");
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [highlightedCategoryIndex, setHighlightedCategoryIndex] = useState(-1);
   const [transaksiNominal, setTransaksiNominal] = useState("");
-  const [transaksiDesc, setTransaksiDesc] = useState("");
+
+  const ALL_COA = [
+    ...PENDAPATAN_COA.map(c => ({ name: c, type: "pemasukan" })),
+    ...PENGELUARAN_COA.map(c => ({ name: c, type: "pengeluaran" }))
+  ];
+  const filteredCOA = ALL_COA.filter(c => c.name.toLowerCase().includes(transaksiCategorySearch.toLowerCase()));
+
+  const { transactions, setTransactions } = useAnggota();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const closeTransaksiModal = () => {
     setIsTransaksiModalOpen(false);
     setTransaksiDateStr(getTodayStr());
     setTransaksiType("pengeluaran");
     setTransaksiCategory("");
+    setTransaksiCategorySearch("");
+    setIsCategoryDropdownOpen(false);
+    setHighlightedCategoryIndex(-1);
     setTransaksiNominal("");
-    setTransaksiDesc("");
   };
 
   // Form States Mutasi
   const [mutasiDateStr, setMutasiDateStr] = useState(getTodayStr());
   const [mutasiNominal, setMutasiNominal] = useState("");
+  const [mutasiDariKas, setMutasiDariKas] = useState("kas_umum");
+  const [mutasiKeKas, setMutasiKeKas] = useState("kas_toko");
 
   // Filter States
   const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonth());
@@ -184,11 +202,153 @@ export default function TransaksiUmumPage() {
     return rawValue ? rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "";
   };
 
+  const handleDeleteTransaction = (id: string) => {
+    setDeleteConfirm({isOpen: true, txId: id});
+  };
+
+  const handleEditTransaction = (id: string) => {
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+    const isDebit = tx.debit > 0;
+    const currentVal = isDebit ? tx.debit : tx.kredit;
+    setEditModal({isOpen: true, tx, newVal: currentVal.toString()});
+  };
+
+  const saveEditTransaction = () => {
+    const { tx, newVal } = editModal;
+    const id = tx.id;
+    const isDebit = tx.debit > 0;
+    const isNegative = newVal.startsWith("-");
+    const nominalNum = parseInt(newVal.replace(/\D/g, "")) || 0;
+    
+    let debit = 0;
+    let kredit = 0;
+    
+    if (isNegative) {
+      if (isDebit) kredit = nominalNum;
+      else debit = nominalNum;
+    } else {
+      if (isDebit) debit = nominalNum;
+      else kredit = nominalNum;
+    }
+
+    setTransactions(prev => prev.map(t => {
+      if (t.id === id) {
+        return { ...t, debit, kredit, nominalMutasi: t.isMutasi ? nominalNum : t.nominalMutasi };
+      }
+      return t;
+    }));
+    setEditModal({isOpen: false, tx: null, newVal: ""});
+  };
+
   // Jika modal mutasi ditutup
   const closeMutasiModal = () => {
     setIsMutasiModalOpen(false);
     setMutasiDateStr(getTodayStr());
     setMutasiNominal("");
+    setMutasiDariKas("kas_umum");
+    setMutasiKeKas("kas_toko");
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isMutasiModalOpen) closeMutasiModal();
+        if (isBankModalOpen) closeBankModal();
+        if (isTransaksiModalOpen) closeTransaksiModal();
+      } else if (e.key === "Enter") {
+        if (isMutasiModalOpen) {
+          e.preventDefault();
+          handleMutasiSubmit();
+        } else if (isBankModalOpen) {
+          // not used here, handled in page if it was
+        } else if (isTransaksiModalOpen) {
+          e.preventDefault();
+          handleTransaksiUmumSubmit();
+        }
+      }
+    };
+
+    if (isMutasiModalOpen || isBankModalOpen || isTransaksiModalOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isMutasiModalOpen, isBankModalOpen, isTransaksiModalOpen,
+    mutasiDateStr, mutasiNominal, mutasiDariKas, mutasiKeKas,
+    bankDateStr, bankNominal, bankCategory, bankType,
+    transaksiDateStr, transaksiNominal, transaksiType, transaksiCategory, transactions
+  ]);
+
+  const handleMutasiSubmit = () => {
+    const nominal = parseInt(mutasiNominal.replace(/\D/g, "")) || 0;
+    if (nominal <= 0) return alert("Nominal mutasi tidak valid");
+    if (mutasiDariKas === mutasiKeKas) return alert("Kas asal dan tujuan tidak boleh sama");
+    
+    const mutasiParts = mutasiDateStr.split("/");
+    const ddmmyy = mutasiParts.length === 3 ? `${mutasiParts[0].padStart(2, "0")}${mutasiParts[1].padStart(2, "0")}${mutasiParts[2].slice(-2)}` : "";
+    const index = (transactions.length + 1).toString().padStart(2, "0");
+    
+    let description = "Mutasi Kas";
+    let debit = 0;
+    let kredit = 0;
+
+    const labels: Record<string, string> = {
+      "kas_sp": "Kas SP",
+      "kas_toko": "Kas Toko",
+      "kas_umum": "Kas Umum",
+      "bank": "Bank"
+    };
+
+    if (mutasiDariKas === "kas_umum") {
+      description = `Mutasi Keluar ke ${labels[mutasiKeKas]}`;
+      kredit = nominal;
+    } else if (mutasiKeKas === "kas_umum") {
+      description = `Mutasi Masuk dari ${labels[mutasiDariKas]}`;
+      debit = nominal;
+    } else {
+      description = `Mutasi dari ${labels[mutasiDariKas]} ke ${labels[mutasiKeKas]}`;
+    }
+
+    const newTx = {
+      id: `MTS-${ddmmyy}-${index}`,
+      date: mutasiDateStr,
+      memberId: "-",
+      member: "Kas Umum",
+      description,
+      debit,
+      kredit,
+      isMutasi: true,
+      mutasiDari: mutasiDariKas,
+      mutasiKe: mutasiKeKas,
+      nominalMutasi: nominal
+    };
+    
+    setTransactions(prev => [...prev, newTx]);
+    closeMutasiModal();
+  };
+
+  const handleTransaksiUmumSubmit = () => {
+    const nominal = parseInt(transaksiNominal.replace(/\D/g, "")) || 0;
+    if (nominal <= 0) return alert("Nominal transaksi tidak valid");
+
+    const txParts = transaksiDateStr.split("/");
+    const ddmmyy = txParts.length === 3 ? `${txParts[0].padStart(2, "0")}${txParts[1].padStart(2, "0")}${txParts[2].slice(-2)}` : "";
+    const count = transactions.filter(t => t.id.startsWith(`TRU-${ddmmyy}`)).length + 1;
+    const refId = `TRU-${ddmmyy}-${count.toString().padStart(2, '0')}`;
+
+    const newTx = {
+      id: refId,
+      date: transaksiDateStr,
+      description: transaksiCategory || "Tanpa Keterangan",
+      keteranganTambahan: "",
+      debit: transaksiType === "pemasukan" ? nominal : 0,
+      kredit: transaksiType === "pengeluaran" ? nominal : 0,
+      isMutasi: false
+    };
+
+    setTransactions(prev => [...prev, newTx]);
+    closeTransaksiModal();
   };
 
   // Jika modal bank ditutup
@@ -198,6 +358,83 @@ export default function TransaksiUmumPage() {
     setBankCategory("admin_bank");
     setBankType("pengeluaran");
     setBankNominal("");
+  };
+
+  let totalDebitBulanIni = 0;
+  let totalKreditBulanIni = 0;
+  let saldoAkhir = 0;
+  
+  const currentMonthStr = getTodayStr().substring(3);
+
+  let umumTransactions = transactions.filter(t => {
+    if (t.id.startsWith("TRU-")) return true;
+    if (t.id.startsWith("MTS-") && (t.mutasiDari === "kas_umum" || t.mutasiKe === "kas_umum")) return true;
+    return false;
+  });
+
+  umumTransactions.forEach(t => {
+    let net = t.debit - t.kredit;
+    saldoAkhir += net;
+    
+    if (t.date.endsWith(currentMonthStr)) {
+      if (net > 0) totalDebitBulanIni += net;
+      if (net < 0) totalKreditBulanIni += Math.abs(net);
+    }
+  });
+
+  // Generate filtered transactions with saldo
+  let currentSaldo = 0;
+  let txsWithSaldo = umumTransactions.map((t) => {
+    let net = t.debit - t.kredit;
+    currentSaldo += net;
+    return { ...t, saldo: currentSaldo };
+  });
+  
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    txsWithSaldo = txsWithSaldo.filter(t => 
+      t.id.toLowerCase().includes(q) || 
+      t.description.toLowerCase().includes(q) || 
+      (t.member && t.member.toLowerCase().includes(q))
+    );
+  }
+
+  if (filterStartDate && filterEndDate) {
+    txsWithSaldo = txsWithSaldo.filter(t => {
+      const parts = t.date.split("/");
+      if (parts.length === 3) {
+        const tDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return tDate >= filterStartDate && tDate <= filterEndDate;
+      }
+      return true;
+    });
+  }
+
+  const handleDownloadExcel = () => {
+    const headers = ["Tanggal", "No. Referensi", "Keterangan", "Pemasukan (Debit)", "Pengeluaran (Kredit)", "Saldo"];
+    const rows = txsWithSaldo.map(t => [
+      t.date,
+      t.id,
+      t.member && t.member !== "Kas Umum" ? `${t.description} - ${t.member}` : t.description,
+      t.debit,
+      t.kredit,
+      t.saldo
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map((v: any) => `"${v}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Laporan_Kas_Umum_${getTodayStr().replace(/\//g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsDownloadModalOpen(false);
   };
 
   return (
@@ -210,13 +447,6 @@ export default function TransaksiUmumPage() {
           <p className="text-gray-500 text-sm mt-1">Catatan arus kas harian untuk aktivitas Kas dan Bank (Non-Anggota).</p>
         </div>
         <div className="flex flex-wrap gap-3 w-full xl:w-auto">
-          <button 
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm"
-          >
-            <Upload className="w-4 h-4" />
-            Import Data
-          </button>
           <button 
             onClick={() => setIsDownloadModalOpen(true)}
             className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm"
@@ -244,22 +474,22 @@ export default function TransaksiUmumPage() {
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <MetricCard 
-          title="Total Pemasukan" 
-          value="Rp 0" 
+          title="Total Pemasukan (Debit)" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(totalDebitBulanIni)}`}
           sub="Bulan ini" 
           icon={ArrowDownLeft} 
           color="emerald" 
         />
         <MetricCard 
-          title="Total Pengeluaran" 
-          value="Rp 0" 
+          title="Total Pengeluaran (Kredit)" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(totalKreditBulanIni)}`}
           sub="Bulan ini" 
           icon={ArrowUpRight} 
           color="amber" 
         />
         <MetricCard 
-          title="Saldo Kas Umum" 
-          value="Rp 0" 
+          title="Saldo Akhir Kas Umum" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(saldoAkhir)}`}
           sub="Per Hari Ini" 
           icon={BookOpen} 
           color="blue" 
@@ -276,12 +506,14 @@ export default function TransaksiUmumPage() {
           </div>
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
             placeholder="Cari referensi atau keterangan..."
           />
         </div>
 
-        {/* Filters */}
+        {/* Date Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <input 
             type="date" 
@@ -296,21 +528,6 @@ export default function TransaksiUmumPage() {
             onChange={(e) => setFilterEndDate(e.target.value)}
             className="block px-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
           />
-
-          <div className="relative flex-1 sm:flex-none">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-gray-400" />
-            </div>
-            <select className="block w-full pl-10 pr-8 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 text-gray-600 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors appearance-none cursor-pointer">
-              <option value="">Semua Transaksi</option>
-              <option value="pemasukan">Pemasukan (Debit)</option>
-              <option value="pengeluaran">Pengeluaran (Kredit)</option>
-            </select>
-          </div>
-          
-          <button className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
-            Reset
-          </button>
         </div>
       </div>
 
@@ -336,30 +553,61 @@ export default function TransaksiUmumPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
+              <tr className="bg-blue-50/50">
+                <td colSpan={3} className="px-6 py-3 font-bold text-gray-800 text-right">
+                  Saldo Halaman Sebelumnya
+                </td>
+                <td colSpan={2} className="px-6 py-3 text-right"></td>
+                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 0</td>
+                <td className="px-6 py-3"></td>
+              </tr>
+              {txsWithSaldo.map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {t.date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                      {t.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <div>
+                        <span className="font-semibold text-gray-800">{t.description}</span>
+                        {t.member && t.member !== "Kas Umum" && (
+                          <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 text-right">
+                      {t.debit > 0 ? `Rp ${new Intl.NumberFormat("id-ID").format(t.debit)}` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 text-right">
+                      {t.kredit > 0 ? `Rp ${new Intl.NumberFormat("id-ID").format(t.kredit)}` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 text-right">
+                      Rp {new Intl.NumberFormat("id-ID").format(t.saldo)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => handleEditTransaction(t.id)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Nominal"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTransaction(t.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Transaksi"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
-        </div>
-        
-        {/* Pagination & Items Per Page */}
-        <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500 bg-gray-50/30">
-          <div className="flex items-center gap-3">
-            <span>Tampilkan</span>
-            <select className="border border-gray-200 rounded-lg py-1 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              <option value="15">15</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>baris</span>
-          </div>
-          
-          <div>Menampilkan 0 hingga 0 dari 0 transaksi</div>
-          
-          <div className="flex gap-1">
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Seb</button>
-            <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 rounded font-medium transition-colors">1</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Lanjut</button>
-          </div>
         </div>
       </div>
 
@@ -408,19 +656,38 @@ export default function TransaksiUmumPage() {
               <div className="flex gap-4 items-center">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dari Kas</label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm">
+                  <select 
+                    value={mutasiDariKas}
+                    onChange={(e) => setMutasiDariKas(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm"
+                  >
+                    <option value="kas_umum">Kas Umum</option>
                     <option value="kas_sp">Kas Simpan Pinjam</option>
                     <option value="kas_toko">Kas Toko</option>
-                    <option value="kas_umum">Kas Umum</option>
                     <option value="bank">Bank</option>
                   </select>
                 </div>
                 <div className="pt-6">
-                  <ArrowRightLeft className="w-5 h-5 text-gray-400" />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const temp = mutasiDariKas;
+                      setMutasiDariKas(mutasiKeKas);
+                      setMutasiKeKas(temp);
+                    }}
+                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                    title="Tukar Posisi"
+                  >
+                    <ArrowRightLeft className="w-5 h-5 text-gray-400" />
+                  </button>
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ke Kas</label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm">
+                  <select 
+                    value={mutasiKeKas}
+                    onChange={(e) => setMutasiKeKas(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm"
+                  >
                     <option value="kas_toko">Kas Toko</option>
                     <option value="kas_sp">Kas Simpan Pinjam</option>
                     <option value="kas_umum">Kas Umum</option>
@@ -439,11 +706,6 @@ export default function TransaksiUmumPage() {
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-medium text-gray-800 text-right" 
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan Mutasi</label>
-                <textarea rows={2} placeholder="Misal: Pindahan kelebihan dana SP ke Toko" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none text-sm"></textarea>
-              </div>
             </div>
             
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
@@ -454,7 +716,7 @@ export default function TransaksiUmumPage() {
                 Batal
               </button>
               <button 
-                onClick={closeMutasiModal}
+                onClick={handleMutasiSubmit}
                 className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
               >
                 Simpan Mutasi
@@ -604,54 +866,80 @@ export default function TransaksiUmumPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Arus Kas</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="transaksiType" 
-                      value="pemasukan"
-                      checked={transaksiType === "pemasukan"}
-                      onChange={(e) => {
-                        setTransaksiType(e.target.value);
-                        setTransaksiCategory(""); // reset category on type change
-                      }}
-                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-700">Pemasukan</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="transaksiType" 
-                      value="pengeluaran"
-                      checked={transaksiType === "pengeluaran"}
-                      onChange={(e) => {
-                        setTransaksiType(e.target.value);
-                        setTransaksiCategory(""); // reset category on type change
-                      }}
-                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-700">Pengeluaran</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kategori (Berdasarkan Struktur Keuangan)</label>
-                <select 
-                  value={transaksiCategory}
-                  onChange={(e) => setTransaksiCategory(e.target.value)}
+                <input 
+                  type="text"
+                  placeholder="Cari atau ketik kategori..."
+                  value={transaksiCategorySearch}
+                  onChange={(e) => {
+                    setTransaksiCategorySearch(e.target.value);
+                    setTransaksiCategory(e.target.value); // Allow arbitrary text
+                    setIsCategoryDropdownOpen(true);
+                    setHighlightedCategoryIndex(-1);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!isCategoryDropdownOpen) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setHighlightedCategoryIndex(prev => Math.min(prev + 1, filteredCOA.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setHighlightedCategoryIndex(prev => Math.max(prev - 1, 0));
+                    } else if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (highlightedCategoryIndex >= 0 && highlightedCategoryIndex < filteredCOA.length) {
+                        const coa = filteredCOA[highlightedCategoryIndex];
+                        setTransaksiCategory(coa.name);
+                        setTransaksiCategorySearch(coa.name);
+                        setTransaksiType(coa.type);
+                        setIsCategoryDropdownOpen(false);
+                      }
+                    }
+                  }}
+                  onFocus={() => setIsCategoryDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setIsCategoryDropdownOpen(false), 200)}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white outline-none"
-                >
-                  <option value="">Pilih Kategori...</option>
-                  {transaksiType === "pemasukan" ? PENDAPATAN_COA.map((coa, idx) => (
-                    <option key={idx} value={coa}>{coa}</option>
-                  )) : PENGELUARAN_COA.map((coa, idx) => (
-                    <option key={idx} value={coa}>{coa}</option>
-                  ))}
-                </select>
+                />
+                
+                {/* Auto-detected indicator */}
+                {transaksiCategory && ALL_COA.find(c => c.name === transaksiCategory) && (
+                  <div className={`absolute right-3 top-[34px] px-2 py-1 text-xs font-medium rounded ${
+                    transaksiType === 'pemasukan' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {transaksiType === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}
+                  </div>
+                )}
+
+                {isCategoryDropdownOpen && filteredCOA.length > 0 && (
+                  <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
+                    {filteredCOA.map((coa, idx) => (
+                      <li 
+                        key={idx}
+                        onMouseDown={() => {
+                          setTransaksiCategory(coa.name);
+                          setTransaksiCategorySearch(coa.name);
+                          setTransaksiType(coa.type);
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                        onMouseEnter={() => setHighlightedCategoryIndex(idx)}
+                        className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between items-center transition-colors border-b border-gray-50 last:border-0 ${
+                          highlightedCategoryIndex === idx ? 'bg-blue-50' : 'hover:bg-blue-50'
+                        }`}
+                      >
+                        <span className="text-gray-700">{coa.name}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          coa.type === 'pemasukan' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                        }`}>
+                          {coa.type.toUpperCase()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div>
@@ -667,17 +955,6 @@ export default function TransaksiUmumPage() {
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan Tambahan</label>
-                <textarea 
-                  rows={2} 
-                  placeholder="Deskripsi atau catatan khusus..." 
-                  value={transaksiDesc}
-                  onChange={(e) => setTransaksiDesc(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-sm"
-                ></textarea>
-              </div>
             </div>
             
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
@@ -688,7 +965,7 @@ export default function TransaksiUmumPage() {
                 Batal
               </button>
               <button 
-                onClick={closeTransaksiModal}
+                onClick={handleTransaksiUmumSubmit}
                 className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
               >
                 Simpan Transaksi
@@ -735,7 +1012,7 @@ export default function TransaksiUmumPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
               <button onClick={() => setIsDownloadModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">Batal</button>
-              <button onClick={() => setIsDownloadModalOpen(false)} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-md shadow-green-500/20">Download Excel</button>
+              <button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-md shadow-green-500/20">Download CSV</button>
             </div>
           </div>
         </div>
@@ -772,6 +1049,50 @@ export default function TransaksiUmumPage() {
         </div>
       )}
 
+      {/* Delete Confirm Modal */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setDeleteConfirm({isOpen: false, txId: ""})}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="font-bold text-gray-800 text-lg mb-2">Hapus Transaksi</h3>
+              <p className="text-gray-500 text-sm">Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <button onClick={() => setDeleteConfirm({isOpen: false, txId: ""})} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+              <button onClick={() => { setTransactions(prev => prev.filter(t => t.id !== deleteConfirm.txId)); setDeleteConfirm({isOpen: false, txId: ""}); }} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-500/20">Hapus</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-0">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setEditModal({isOpen: false, tx: null, newVal: ""})}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-indigo-600" />
+                Edit Nominal Transaksi
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">Ubah nominal untuk <span className="font-semibold text-gray-800">{editModal.tx?.description}</span> ({editModal.tx?.id}):</p>
+              <div>
+                <input 
+                  type="text" 
+                  value={editModal.newVal} 
+                  onChange={(e) => setEditModal({...editModal, newVal: formatRibuan(e.target.value)})} 
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-medium text-gray-800 text-right text-lg" 
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setEditModal({isOpen: false, tx: null, newVal: ""})} className="px-5 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+              <button onClick={saveEditTransaction} className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20">Simpan Perubahan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

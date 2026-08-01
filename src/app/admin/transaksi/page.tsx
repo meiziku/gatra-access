@@ -50,11 +50,13 @@ const getLastDayOfMonth = () => {
 export default function TransaksiSPPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMutasiModalOpen, setIsMutasiModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, txId: string}>({isOpen: false, txId: ""});
+  const [editModal, setEditModal] = useState<{isOpen: boolean, tx: any, newVal: string}>({isOpen: false, tx: null, newVal: ""});
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   
-  const { members: MEMBERS, pendidikanMembers, hariRayaMembers, transactions, setTransactions, bungaPinjaman } = useAnggota();
+  const { members: MEMBERS, pendidikanMembers, hariRayaMembers, transactions, setTransactions, bungaPinjaman, currentRole } = useAnggota();
   
   // Custom Select State untuk Pencarian Anggota
   const [memberSearch, setMemberSearch] = useState("");
@@ -73,10 +75,13 @@ export default function TransaksiSPPage() {
   // Form States Mutasi
   const [mutasiDateStr, setMutasiDateStr] = useState(getTodayStr());
   const [mutasiNominal, setMutasiNominal] = useState("");
+  const [mutasiDariKas, setMutasiDariKas] = useState("kas_sp");
+  const [mutasiKeKas, setMutasiKeKas] = useState("kas_toko");
 
   // Filter States
   const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonth());
   const [filterEndDate, setFilterEndDate] = useState(getLastDayOfMonth());
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form States Bank
   const [bankDateStr, setBankDateStr] = useState(getTodayStr());
@@ -291,11 +296,21 @@ export default function TransaksiSPPage() {
   
   const currentMonthStr = getTodayStr().substring(3); // extracts mm/yyyy
 
-  transactions.forEach(t => {
-    saldoAkhir += t.debit - t.kredit;
+  let spTransactions = transactions.filter(t => {
+    if (t.id.startsWith("TRU-")) return false; // Transaksi Umum
+    if (t.id.startsWith("BNK-")) return false; // Transaksi Bank
+    if (t.id.startsWith("MTS-") && t.mutasiDari !== "kas_sp" && t.mutasiKe !== "kas_sp") return false; // Mutasi unrelated to SP
+    return true;
+  });
+
+  spTransactions.forEach(t => {
+    let net = t.debit - t.kredit;
+    
+    saldoAkhir += net;
+    
     if (t.date.endsWith(currentMonthStr)) {
-      totalDebitBulanIni += t.debit;
-      totalKreditBulanIni += t.kredit;
+      if (net > 0) totalDebitBulanIni += net;
+      if (net < 0) totalKreditBulanIni += Math.abs(net);
     }
   });
 
@@ -318,9 +333,7 @@ export default function TransaksiSPPage() {
   };
 
   const handleDeleteTransaction = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
-    }
+    setDeleteConfirm({isOpen: true, txId: id});
   };
 
   const handleEditTransaction = (id: string) => {
@@ -328,29 +341,88 @@ export default function TransaksiSPPage() {
     if (!tx) return;
     const isDebit = tx.debit > 0;
     const currentVal = isDebit ? tx.debit : tx.kredit;
-    const newValStr = prompt(`Masukkan nominal baru untuk ${tx.description} (${tx.id}):`, currentVal.toString());
-    if (newValStr !== null) {
-      const isNegative = newValStr.startsWith("-");
-      const nominalNum = parseInt(newValStr.replace(/\D/g, "")) || 0;
-      
-      let debit = 0;
-      let kredit = 0;
-      
-      if (tx.description === "Pinjaman (Pencairan)") {
-        if (isNegative) debit = nominalNum;
-        else kredit = nominalNum;
-      } else {
-        if (isNegative) kredit = nominalNum;
-        else debit = nominalNum;
-      }
+    setEditModal({isOpen: true, tx, newVal: currentVal.toString()});
+  };
 
-      setTransactions(prev => prev.map(t => {
-        if (t.id === id) {
-          return { ...t, debit, kredit };
-        }
-        return t;
-      }));
+  const saveEditTransaction = () => {
+    const { tx, newVal } = editModal;
+    const id = tx.id;
+    const isNegative = newVal.startsWith("-");
+    const nominalNum = parseInt(newVal.replace(/\D/g, "")) || 0;
+    
+    let debit = 0;
+    let kredit = 0;
+    
+    if (tx.description === "Pinjaman (Pencairan)") {
+      if (isNegative) debit = nominalNum;
+      else kredit = nominalNum;
+    } else {
+      if (isNegative) kredit = nominalNum;
+      else debit = nominalNum;
     }
+
+    setTransactions(prev => prev.map(t => {
+      if (t.id === id) {
+        return { ...t, debit, kredit, nominalMutasi: t.isMutasi ? nominalNum : t.nominalMutasi };
+      }
+      return t;
+    }));
+    setEditModal({isOpen: false, tx: null, newVal: ""});
+  };
+
+  // Generate filtered transactions with saldo
+  let currentSaldo = 0;
+  let txsWithSaldo = spTransactions.map((t) => {
+    let net = t.debit - t.kredit;
+    currentSaldo += net;
+    return { ...t, saldo: currentSaldo };
+  });
+  
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    txsWithSaldo = txsWithSaldo.filter(t => 
+      t.id.toLowerCase().includes(q) || 
+      t.description.toLowerCase().includes(q) || 
+      (t.member && t.member.toLowerCase().includes(q))
+    );
+  }
+
+  if (filterStartDate && filterEndDate) {
+    txsWithSaldo = txsWithSaldo.filter(t => {
+      const parts = t.date.split("/");
+      if (parts.length === 3) {
+        const tDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return tDate >= filterStartDate && tDate <= filterEndDate;
+      }
+      return true;
+    });
+  }
+
+  const handleDownloadExcel = () => {
+    const headers = ["Tanggal", "No. Referensi", "Keterangan", "Pemasukan (Debit)", "Pengeluaran (Kredit)", "Saldo"];
+    const rows = txsWithSaldo.map(t => [
+      t.date,
+      t.id,
+      t.member && t.member !== "Kas Umum" ? `${t.description} - ${t.member}` : t.description,
+      t.debit,
+      t.kredit,
+      t.saldo
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map((v: any) => `"${v}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Laporan_Kas_SP_${getTodayStr().replace(/\//g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsDownloadModalOpen(false);
   };
 
   // Jika modal bank ditutup
@@ -366,7 +438,8 @@ export default function TransaksiSPPage() {
     const nominal = parseInt(bankNominal.replace(/\D/g, "")) || 0;
     if (nominal <= 0) return alert("Nominal bank tidak valid");
     
-    const ddmmyy = bankDateStr.split("/").map(s => s.padStart(2, "0")).join("").substring(0, 6);
+    const bankParts = bankDateStr.split("/");
+    const ddmmyy = bankParts.length === 3 ? `${bankParts[0].padStart(2, "0")}${bankParts[1].padStart(2, "0")}${bankParts[2].slice(-2)}` : "";
     const index = (transactions.length + 1).toString().padStart(2, "0");
     const newTx = {
       id: `BNK-${ddmmyy}-${index}`,
@@ -386,29 +459,177 @@ export default function TransaksiSPPage() {
   const handleMutasiSubmit = () => {
     const nominal = parseInt(mutasiNominal.replace(/\D/g, "")) || 0;
     if (nominal <= 0) return alert("Nominal mutasi tidak valid");
+    if (mutasiDariKas === mutasiKeKas) return alert("Kas asal dan tujuan tidak boleh sama");
     
-    const ddmmyy = mutasiDateStr.split("/").map(s => s.padStart(2, "0")).join("").substring(0, 6);
+    const mutasiParts = mutasiDateStr.split("/");
+    const ddmmyy = mutasiParts.length === 3 ? `${mutasiParts[0].padStart(2, "0")}${mutasiParts[1].padStart(2, "0")}${mutasiParts[2].slice(-2)}` : "";
     const index = (transactions.length + 1).toString().padStart(2, "0");
+    
+    let description = "Mutasi Kas";
+    let debit = 0;
+    let kredit = 0;
+
+    const labels: Record<string, string> = {
+      "kas_sp": "Kas SP",
+      "kas_toko": "Kas Toko",
+      "kas_umum": "Kas Umum",
+      "bank": "Bank"
+    };
+
+    if (mutasiDariKas === "kas_sp") {
+      description = `Mutasi Keluar ke ${labels[mutasiKeKas]}`;
+      kredit = nominal;
+    } else if (mutasiKeKas === "kas_sp") {
+      description = `Mutasi Masuk dari ${labels[mutasiDariKas]}`;
+      debit = nominal;
+    } else {
+      description = `Mutasi dari ${labels[mutasiDariKas]} ke ${labels[mutasiKeKas]}`;
+    }
+
     const newTx = {
       id: `MTS-${ddmmyy}-${index}`,
       date: mutasiDateStr,
       memberId: "-",
       member: "Kas Umum",
-      description: "Mutasi Kas Keluar",
-      debit: 0,
-      kredit: nominal,
-      isMutasi: true
+      description,
+      debit,
+      kredit,
+      isMutasi: true,
+      mutasiDari: mutasiDariKas,
+      mutasiKe: mutasiKeKas,
+      nominalMutasi: nominal
     };
     
     setTransactions(prev => [...prev, newTx]);
     closeMutasiModal();
   };
 
+  const handleTransaksiSubmit = () => {
+    const newTxs: any[] = [];
+    const txParts = dateStr.split('/');
+    const ddmmyy = txParts.length === 3 ? `${txParts[0].padStart(2, "0")}${txParts[1].padStart(2, "0")}${txParts[2].slice(-2)}` : "";
+    
+    let pkCount = transactions.filter(t => t.id.startsWith(`PKK-${ddmmyy}`)).length + 1;
+    let wjbCount = transactions.filter(t => t.id.startsWith(`WJB-${ddmmyy}`)).length + 1;
+    let mnkCount = transactions.filter(t => t.id.startsWith(`MNK-${ddmmyy}`)).length + 1;
+    let pnjCount = transactions.filter(t => t.id.startsWith(`PNJ-${ddmmyy}`)).length + 1;
+
+    Object.keys(nominals).forEach(key => {
+      const val = nominals[key];
+      if (val && val !== "0" && val !== "-" && val !== "") {
+        const isNegative = val.startsWith("-");
+        const nominalNum = parseInt(val.replace(/\D/g, ""));
+        const isPinjaman = key === "Pinjaman (Pencairan)";
+        
+        let debit = 0;
+        let kredit = 0;
+        
+        if (isPinjaman) {
+          if (isNegative) debit = nominalNum;
+          else kredit = nominalNum;
+        } else {
+          if (isNegative) kredit = nominalNum;
+          else debit = nominalNum;
+        }
+
+        let refId = `TRX-${Math.floor(Math.random() * 1000000)}`;
+        if (key === "Simpanan Pokok") {
+          refId = `PKK-${ddmmyy}-${pkCount.toString().padStart(2, '0')}`;
+          pkCount++;
+        } else if (key === "Simpanan Wajib") {
+          refId = `WJB-${ddmmyy}-${wjbCount.toString().padStart(2, '0')}`;
+          wjbCount++;
+        } else if (key === "Simpanan Manasuka") {
+          refId = `MNK-${ddmmyy}-${mnkCount.toString().padStart(2, '0')}`;
+          mnkCount++;
+        } else if (key === "Simpanan Pendidikan") {
+          const count = transactions.filter(t => t.id.startsWith(`${selectedPendidikanId}-`)).length + 1;
+          refId = `${selectedPendidikanId}-${count.toString().padStart(2, '0')}`;
+        } else if (key === "Pinjaman (Pencairan)") {
+          refId = `PNJ-${ddmmyy}-${pnjCount.toString().padStart(2, '0')}`;
+          pnjCount++;
+        } else if (key === "Angsuran Pinjaman") {
+          const count = transactions.filter(t => t.id.startsWith(`AN-${selectedLoanId}-`)).length + 1;
+          refId = `AN-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
+        } else if (key === "Jasa / Bunga") {
+          const count = transactions.filter(t => t.id.startsWith(`JS-${selectedLoanId}-`)).length + 1;
+          refId = `JS-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
+        }
+
+        const txObj: any = {
+          id: refId,
+          date: dateStr,
+          member: selectedMember ? `${selectedMember.id} - ${selectedMember.name}` : "Umum",
+          memberId: selectedMember ? selectedMember.id : null,
+          description: key,
+          debit,
+          kredit,
+        };
+        
+        if (isPinjaman) {
+           txObj.tenor = parseInt(pinjamanTenor) || 0;
+           txObj.bunga = bungaPinjaman;
+        }
+
+        newTxs.push(txObj);
+      }
+    });
+
+    if (newTxs.length > 0) {
+      setTransactions(prev => [...prev, ...newTxs]);
+      closeTransaksiModal();
+    } else {
+      alert("Silakan isi minimal satu nominal transaksi");
+    }
+  };
+
   // Dinamis berdasarkan kepemilikan anggota
 
   const hasActiveLoans = activeLoans.length > 0;
-  
+
+  // Global Keyboard listener for Modals
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isModalOpen) closeTransaksiModal();
+        if (isMutasiModalOpen) closeMutasiModal();
+        if (isBankModalOpen) closeBankModal();
+      } else if (e.key === "Enter") {
+        if (isMemberDropdownOpen) return;
+        
+        const target = e.target as HTMLElement;
+        if (target.tagName !== "TEXTAREA" && target.tagName !== "BUTTON") {
+          if (isModalOpen) {
+            e.preventDefault();
+            handleTransaksiSubmit();
+          } else if (isMutasiModalOpen) {
+            e.preventDefault();
+            handleMutasiSubmit();
+          } else if (isBankModalOpen) {
+            e.preventDefault();
+            handleBankSubmit();
+          }
+        }
+      }
+    };
+
+    if (isModalOpen || isMutasiModalOpen || isBankModalOpen) {
+      window.addEventListener("keydown", handleGlobalKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, [
+    isModalOpen, isMutasiModalOpen, isBankModalOpen, 
+    isMemberDropdownOpen,
+    dateStr, nominals, selectedMember, pinjamanTenor, selectedLoanId, selectedPendidikanId, 
+    bankDateStr, bankCategory, bankType, bankNominal, 
+    mutasiDateStr, mutasiDariKas, mutasiKeKas, mutasiNominal,
+    transactions, pinjamanCaraBayar, bungaPinjaman, selectedHariRayaId
+  ]);
+
   const hasPendidikan = selectedMember && pendidikanMembers.some((p: any) => p.id === selectedMember.id);
+  const hasHariRaya = selectedMember && hariRayaMembers.some((p: any) => p.id === selectedMember.id);
   
   const transactionLabels = [
     "Simpanan Pokok", 
@@ -437,19 +658,21 @@ export default function TransaksiSPPage() {
         </div>
         <div className="flex flex-wrap gap-3 w-full xl:w-auto">
           <button 
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm"
-          >
-            <Upload className="w-4 h-4" />
-            Import Data
-          </button>
-          <button 
             onClick={() => setIsDownloadModalOpen(true)}
             className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm"
           >
             <Download className="w-4 h-4" />
             Download KAS
           </button>
+          {currentRole === "Super Admin" && (
+            <button 
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors shadow-md shadow-orange-500/20 font-medium text-sm"
+            >
+              <Upload className="w-4 h-4" />
+              Import Excel
+            </button>
+          )}
           <button 
             onClick={() => setIsMutasiModalOpen(true)}
             className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20 font-medium text-sm"
@@ -509,6 +732,8 @@ export default function TransaksiSPPage() {
           </div>
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
             placeholder="Cari referensi atau keterangan..."
           />
@@ -554,12 +779,15 @@ export default function TransaksiSPPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {(() => {
-                let currentSaldo = 0;
-                return transactions.map((t) => {
-                  currentSaldo += t.debit - t.kredit;
-                  return { ...t, saldo: currentSaldo };
-                }).map((t) => (
+              <tr className="bg-blue-50/50">
+                <td colSpan={3} className="px-6 py-3 font-bold text-gray-800 text-right">
+                  Saldo Halaman Sebelumnya
+                </td>
+                <td colSpan={2} className="px-6 py-3 text-right"></td>
+                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 0</td>
+                <td className="px-6 py-3"></td>
+              </tr>
+              {txsWithSaldo.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {t.date}
@@ -570,7 +798,9 @@ export default function TransaksiSPPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div>
                         <span className="font-semibold text-gray-800">{t.description}</span>
-                        <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
+                        {t.member !== "Kas Umum" && (
+                          <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 text-right">
@@ -601,16 +831,7 @@ export default function TransaksiSPPage() {
                       </div>
                     </td>
                   </tr>
-                ));
-              })()}
-              <tr className="bg-blue-50/50">
-                <td colSpan={3} className="px-6 py-3 font-bold text-gray-800 text-right">
-                  Saldo Bawaan (Halaman Sebelumnya)
-                </td>
-                <td colSpan={2} className="px-6 py-3 text-right"></td>
-                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 0</td>
-                <td className="px-6 py-3"></td>
-              </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -662,7 +883,11 @@ export default function TransaksiSPPage() {
               <div className="flex gap-4 items-center">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dari Kas</label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm">
+                  <select 
+                    value={mutasiDariKas}
+                    onChange={(e) => setMutasiDariKas(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm"
+                  >
                     <option value="kas_sp">Kas Simpan Pinjam</option>
                     <option value="kas_toko">Kas Toko</option>
                     <option value="kas_umum">Kas Umum</option>
@@ -670,11 +895,26 @@ export default function TransaksiSPPage() {
                   </select>
                 </div>
                 <div className="pt-6">
-                  <ArrowRightLeft className="w-5 h-5 text-gray-400" />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const temp = mutasiDariKas;
+                      setMutasiDariKas(mutasiKeKas);
+                      setMutasiKeKas(temp);
+                    }}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="Tukar Kas"
+                  >
+                    <ArrowRightLeft className="w-5 h-5" />
+                  </button>
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ke Kas</label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm">
+                  <select 
+                    value={mutasiKeKas}
+                    onChange={(e) => setMutasiKeKas(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm"
+                  >
                     <option value="kas_toko">Kas Toko</option>
                     <option value="kas_sp">Kas Simpan Pinjam</option>
                     <option value="kas_umum">Kas Umum</option>
@@ -693,11 +933,6 @@ export default function TransaksiSPPage() {
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-medium text-gray-800 text-right" 
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan Mutasi</label>
-                <textarea rows={2} placeholder="Misal: Pindahan kelebihan dana SP ke Toko" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors resize-none text-sm"></textarea>
-              </div>
             </div>
             
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
@@ -708,7 +943,7 @@ export default function TransaksiSPPage() {
                 Batal
               </button>
               <button 
-                onClick={closeMutasiModal}
+                onClick={handleMutasiSubmit}
                 className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
               >
                 Simpan Mutasi
@@ -789,11 +1024,6 @@ export default function TransaksiSPPage() {
                   onChange={(e) => setBankNominal(formatRibuan(e.target.value))}
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors font-medium text-gray-800 text-right" 
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                <textarea rows={2} placeholder="Misal: Biaya bulanan admin bank" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none text-sm"></textarea>
               </div>
             </div>
             
@@ -1057,78 +1287,7 @@ export default function TransaksiSPPage() {
                 Batal
               </button>
               <button 
-                onClick={() => {
-                  const newTxs: any[] = [];
-                  const ddmmyy = dateStr.split('/').join('');
-                  
-                  let pkCount = transactions.filter(t => t.id.startsWith(`PK-${ddmmyy}`)).length + 1;
-                  let wjbCount = transactions.filter(t => t.id.startsWith(`WJB-${ddmmyy}`)).length + 1;
-                  let mnkCount = transactions.filter(t => t.id.startsWith(`MNK-${ddmmyy}`)).length + 1;
-                  let pnjCount = transactions.filter(t => t.id.startsWith(`PNJ-${ddmmyy}`)).length + 1;
-
-                  Object.keys(nominals).forEach(key => {
-                    const val = nominals[key];
-                    if (val && val !== "0" && val !== "-" && val !== "") {
-                      const isNegative = val.startsWith("-");
-                      const nominalNum = parseInt(val.replace(/\D/g, ""));
-                      const isPinjaman = key === "Pinjaman (Pencairan)";
-                      
-                      let debit = 0;
-                      let kredit = 0;
-                      
-                      if (isPinjaman) {
-                        if (isNegative) debit = nominalNum;
-                        else kredit = nominalNum;
-                      } else {
-                        if (isNegative) kredit = nominalNum;
-                        else debit = nominalNum;
-                      }
-
-                      let refId = `TRX-${Math.floor(Math.random() * 1000000)}`;
-                      if (key === "Simpanan Pokok") {
-                        refId = `PK-${ddmmyy}-${pkCount.toString().padStart(2, '0')}`;
-                        pkCount++;
-                      } else if (key === "Simpanan Wajib") {
-                        refId = `WJB-${ddmmyy}-${wjbCount.toString().padStart(2, '0')}`;
-                        wjbCount++;
-                      } else if (key === "Simpanan Manasuka") {
-                        refId = `MNK-${ddmmyy}-${mnkCount.toString().padStart(2, '0')}`;
-                        mnkCount++;
-                      } else if (key === "Simpanan Pendidikan") {
-                        const count = transactions.filter(t => t.id.startsWith(`${selectedPendidikanId}-`)).length + 1;
-                        refId = `${selectedPendidikanId}-${count.toString().padStart(2, '0')}`;
-                      } else if (key === "Pinjaman (Pencairan)") {
-                        refId = `PNJ-${ddmmyy}-${pnjCount.toString().padStart(2, '0')}`;
-                        pnjCount++;
-                      } else if (key === "Angsuran Pinjaman") {
-                        const count = transactions.filter(t => t.id.startsWith(`AN-${selectedLoanId}-`)).length + 1;
-                        refId = `AN-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
-                      } else if (key === "Jasa / Bunga") {
-                        const count = transactions.filter(t => t.id.startsWith(`JS-${selectedLoanId}-`)).length + 1;
-                        refId = `JS-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
-                      }
-
-                      const txObj: any = {
-                        id: refId,
-                        date: dateStr,
-                        member: selectedMember ? `${selectedMember.id} - ${selectedMember.name}` : "Umum",
-                        memberId: selectedMember ? selectedMember.id : null,
-                        description: key,
-                        debit,
-                        kredit,
-                      };
-                      
-                      if (isPinjaman) {
-                         txObj.tenor = parseInt(pinjamanTenor) || 0;
-                         txObj.caraPembayaran = pinjamanCaraBayar;
-                      }
-
-                      newTxs.push(txObj);
-                    }
-                  });
-                  setTransactions(prev => [...prev, ...newTxs]);
-                  closeTransaksiModal();
-                }}
+                onClick={handleTransaksiSubmit}
                 className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
               >
                 Simpan Transaksi
@@ -1175,7 +1334,7 @@ export default function TransaksiSPPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
               <button onClick={() => setIsDownloadModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">Batal</button>
-              <button onClick={() => setIsDownloadModalOpen(false)} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-md shadow-green-500/20">Download Excel</button>
+              <button onClick={handleDownloadExcel} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 shadow-md shadow-green-500/20">Download CSV</button>
             </div>
           </div>
         </div>
@@ -1212,6 +1371,50 @@ export default function TransaksiSPPage() {
         </div>
       )}
 
+      {/* Delete Confirm Modal */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setDeleteConfirm({isOpen: false, txId: ""})}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="font-bold text-gray-800 text-lg mb-2">Hapus Transaksi</h3>
+              <p className="text-gray-500 text-sm">Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <button onClick={() => setDeleteConfirm({isOpen: false, txId: ""})} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+              <button onClick={() => { setTransactions(prev => prev.filter(t => t.id !== deleteConfirm.txId)); setDeleteConfirm({isOpen: false, txId: ""}); }} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-500/20">Hapus</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-0">
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={() => setEditModal({isOpen: false, tx: null, newVal: ""})}></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md z-10 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-indigo-600" />
+                Edit Nominal Transaksi
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">Ubah nominal untuk <span className="font-semibold text-gray-800">{editModal.tx?.description}</span> ({editModal.tx?.id}):</p>
+              <div>
+                <input 
+                  type="text" 
+                  value={editModal.newVal} 
+                  onChange={(e) => setEditModal({...editModal, newVal: formatRibuan(e.target.value)})} 
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-medium text-gray-800 text-right text-lg" 
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+              <button onClick={() => setEditModal({isOpen: false, tx: null, newVal: ""})} className="px-5 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+              <button onClick={saveEditTransaction} className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20">Simpan Perubahan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

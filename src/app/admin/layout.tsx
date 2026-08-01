@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { Topbar } from "@/components/admin/Topbar";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function AdminLayout({
   children,
@@ -10,7 +11,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentRole, setCurrentRole] = useState("Super Admin");
+  const { currentRole, setCurrentRole } = useAnggota();
 
   return (
     <div className="flex h-screen bg-slate-50/50">

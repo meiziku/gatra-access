@@ -8,6 +8,7 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
   const resolvedParams = use(params);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [showHasBalanceOnly, setShowHasBalanceOnly] = useState(false);
+  const [selectedYear, setSelectedYear] = useState("2026");
   
   // Convert slug to Title Case
   const jenisTitle = resolvedParams.jenis
@@ -97,7 +98,7 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
           
           const net = t.debit - t.kredit; // debit is positive change, kredit is negative
           const parts = t.date.split('/');
-          if (parts.length >= 2) {
+          if (parts.length >= 3 && parts[2] === selectedYear) {
              const monthIdx = parseInt(parts[1], 10) - 1;
              if (monthIdx >= 0 && monthIdx < 12) {
                data[monthIdx] += net;
@@ -177,6 +178,65 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const filteredDataForTable = [...dummyData].filter(row => {
+    if (tableSearch && !row.nama.toLowerCase().includes(tableSearch.toLowerCase()) && !row.id.toLowerCase().includes(tableSearch.toLowerCase()) && !row.dept.toLowerCase().includes(tableSearch.toLowerCase()) && !(row.ref && row.ref.toLowerCase().includes(tableSearch.toLowerCase()))) return false;
+    if (!showHasBalanceOnly || resolvedParams.jenis !== 'manasuka') return true;
+    const totalTahunIni = row.data.reduce((a: number, b: number) => a + b, 0);
+    const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
+    return totalSemuanya > 0;
+  }).sort((a, b) => {
+    if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleExportExcel = () => {
+    let headers: string[] = [];
+    let rows: any[] = [];
+    
+    if (resolvedParams.jenis === 'pendidikan' || resolvedParams.jenis === 'hari-raya') {
+      headers = ["No Referensi", "Nama Anggota", "Info Simpanan", ...months, "Total Thn Ini", "Tahun Lalu", "Total Semua"];
+      rows = filteredDataForTable.map(row => {
+        const totalTahunIni = row.data.reduce((a: number, b: number) => a + b, 0);
+        const totalSemuanya = totalTahunIni + row.tahunLalu;
+        const info = resolvedParams.jenis === 'pendidikan' ? `T: Rp ${row.target} | ${row.lamaBulan}bln | Rp ${row.cicilan}/bln` : `Rp ${row.cicilan}/bln`;
+        return [row.ref, row.nama, info, ...row.data, totalTahunIni, row.tahunLalu, totalSemuanya];
+      });
+    } else {
+      headers = ["ID", "Nama Anggota", "Pekerjaan"];
+      if (!isPokok) {
+        headers = [...headers, ...months, "Total Thn Ini", "Tahun Lalu", "Total Semua"];
+      } else {
+        headers.push("Total (Rp)");
+      }
+      
+      rows = filteredDataForTable.map(row => {
+        const totalTahunIni = row.data.reduce((a: number, b: number) => a + b, 0);
+        const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
+        if (!isPokok) {
+          return [row.id, row.nama, row.dept, ...row.data, totalTahunIni, row.tahunLalu, totalSemuanya];
+        } else {
+          return [row.id, row.nama, row.dept, totalSemuanya];
+        }
+      });
+    }
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map((v: any) => `"${v}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const today = new Date();
+    link.setAttribute("download", `Laporan_Simpanan_${jenisTitle}_${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
@@ -275,11 +335,19 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
           <p className="text-gray-500 text-sm mt-1">Rekapitulasi transaksi bulanan simpanan {jenisTitle.toLowerCase()} per anggota.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-            <Filter className="w-4 h-4" />
-            Tahun 2026
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-medium text-sm">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
+            >
+              <option value="2026">Tahun 2026</option>
+              <option value="2025">Tahun 2025</option>
+              <option value="2024">Tahun 2024</option>
+            </select>
+          </div>
+          <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Export Excel
           </button>
@@ -330,7 +398,7 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
                {dummyData.filter(row => {
                  if (tableSearch && !row.nama.toLowerCase().includes(tableSearch.toLowerCase()) && !row.id.toLowerCase().includes(tableSearch.toLowerCase()) && !row.dept.toLowerCase().includes(tableSearch.toLowerCase()) && !(row.ref && row.ref.toLowerCase().includes(tableSearch.toLowerCase()))) return false;
                  if (!showHasBalanceOnly || resolvedParams.jenis !== 'manasuka') return true;
-                 const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
+                 const totalTahunIni = row.data.reduce((a: number, b: number) => a + b, 0);
                  const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                  return totalSemuanya > 0;
                }).length}
@@ -386,18 +454,8 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {[...dummyData].filter(row => {
-                 if (tableSearch && !row.nama.toLowerCase().includes(tableSearch.toLowerCase()) && !row.id.toLowerCase().includes(tableSearch.toLowerCase()) && !row.dept.toLowerCase().includes(tableSearch.toLowerCase()) && !(row.ref && row.ref.toLowerCase().includes(tableSearch.toLowerCase()))) return false;
-                 if (!showHasBalanceOnly || resolvedParams.jenis !== 'manasuka') return true;
-                 const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
-                 const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
-                 return totalSemuanya > 0;
-              }).sort((a, b) => {
-                 if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-                 if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
-                 return 0;
-              }).map((row) => {
-                const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
+              {filteredDataForTable.map((row) => {
+                const totalTahunIni = row.data.reduce((a: number, b: number) => a + b, 0);
                 const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                 
                 return (
@@ -469,7 +527,7 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
                 </td>
                 
                 {!isPokok && months.map((_, idx) => {
-                  const colTotal = dummyData.reduce((acc, row) => acc + row.data[idx], 0);
+                  const colTotal = filteredDataForTable.reduce((acc, row) => acc + row.data[idx], 0);
                   return (
                     <td key={idx} className="px-0.5 py-2 font-mono font-bold text-gray-800 text-xs whitespace-nowrap text-right">
                       {formatCurrency(colTotal)}
@@ -479,18 +537,18 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
 
                 {!isPokok && (
                   <td className="px-0.5 py-2 font-mono font-bold text-gray-800 text-xs whitespace-nowrap text-right bg-gray-200/50 border-l border-gray-300">
-                    {formatCurrency(dummyData.reduce((acc, row) => acc + row.data.reduce((a,b) => a+b, 0), 0))}
+                    {formatCurrency(filteredDataForTable.reduce((acc, row) => acc + row.data.reduce((a: number, b: number) => a+b, 0), 0))}
                   </td>
                 )}
                 {!isPokok && (
                   <td className="px-0.5 py-2 font-mono font-bold text-gray-800 text-xs whitespace-nowrap text-right bg-gray-200/50">
-                    {formatCurrency(dummyData.reduce((acc, row) => acc + row.tahunLalu, 0))}
+                    {formatCurrency(filteredDataForTable.reduce((acc, row) => acc + row.tahunLalu, 0))}
                   </td>
                 )}
 
-                <td className={`px-0.5 py-2 font-mono font-black text-xs whitespace-nowrap text-right border-l sticky right-0 z-10 shadow-[-1px_0_5px_-2px_rgba(0,0,0,0.1)] ${theme.footerTotalColBg}`}>
-                  {formatCurrency(dummyData.reduce((acc, row) => {
-                    const totalTahunIni = row.data.reduce((a,b) => a+b, 0);
+                <td className={`px-1 py-3 font-mono font-black text-right border-l sticky right-0 z-10 shadow-[-1px_0_5px_-2px_rgba(0,0,0,0.1)] ${theme.footerTotalColBg}`}>
+                  {formatCurrency(filteredDataForTable.reduce((acc, row) => {
+                    const totalTahunIni = row.data.reduce((a: number,b: number) => a+b, 0);
                     const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                     return acc + totalSemuanya;
                   }, 0))}
