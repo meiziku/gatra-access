@@ -2,23 +2,60 @@
 
 import { useState } from "react";
 import { Search, Filter, Download, CreditCard, ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2, ChevronRight, HandCoins, X } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Mock Data
-const dummyData = [
-  { id: "P-001", nama: "Ahmad Rizki", noRef: "PINJ-20260726-001", plafon: 50000000, sisaPokok: 35000000, tglCair: "2026-01-15", tenorTotal: 24, tenorSisa: 14, status: "Lancar" },
-  { id: "P-002", nama: "Budi Santoso", noRef: "PINJ-20260726-002", plafon: 15000000, sisaPokok: 12000000, tglCair: "2026-03-10", tenorTotal: 12, tenorSisa: 9, status: "Kurang Lancar" },
-  { id: "P-003", nama: "Siti Nurhaliza", noRef: "PINJ-20260726-003", plafon: 20000000, sisaPokok: 5000000, tglCair: "2025-08-20", tenorTotal: 12, tenorSisa: 2, status: "Lancar" },
-  { id: "P-004", nama: "Dewi Sartika", noRef: "PINJ-20260726-004", plafon: 100000000, sisaPokok: 85000000, tglCair: "2026-06-05", tenorTotal: 36, tenorSisa: 34, status: "Lancar" },
-  { id: "P-005", nama: "Hendra Gunawan", noRef: "PINJ-20260726-005", plafon: 5000000, sisaPokok: 5000000, tglCair: "2025-12-01", tenorTotal: 6, tenorSisa: 0, status: "Macet" },
-  { id: "P-006", nama: "Rini Wulandari", noRef: "PINJ-20260726-006", plafon: 35000000, sisaPokok: 0, tglCair: "2026-02-14", tenorTotal: 24, tenorSisa: 0, status: "Lunas" },
-  { id: "P-007", nama: "Agus Pratama", noRef: "PINJ-20260726-007", plafon: 75000000, sisaPokok: 60000000, tglCair: "2026-04-20", tenorTotal: 24, tenorSisa: 18, status: "Diragukan" },
-];
-
 export default function LaporanPinjamanPage() {
+  const { transactions } = useAnggota();
   const [searchQuery, setSearchQuery] = useState("");
   const [showBelumLunas, setShowBelumLunas] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [selectedDetail, setSelectedDetail] = useState<any>(null);
+
+  const dummyData: any[] = [];
+  let summaryPlafon = 0;
+  let summarySisaPokok = 0;
+  let summaryJasa = 0;
+  let nplCount = 0;
+
+  if (transactions) {
+    const loanTxs = transactions.filter(t => t.description === "Pinjaman (Pencairan)");
+    loanTxs.forEach(loan => {
+      const plafon = Math.max(loan.kredit, loan.debit);
+      
+      const angsuranList = transactions.filter(t => t.description === "Angsuran Pinjaman" && t.id.includes(loan.id));
+      const jasaList = transactions.filter(t => t.description === "Jasa / Bunga" && t.id.includes(loan.id));
+      
+      let totalAngsuran = 0;
+      let totalJasa = 0;
+      
+      angsuranList.forEach(a => totalAngsuran += Math.max(a.debit, a.kredit));
+      jasaList.forEach(a => totalJasa += Math.max(a.debit, a.kredit));
+      
+      const sisaPokok = Math.max(0, plafon - totalAngsuran);
+      const tenorSisa = Math.max(0, (loan.tenor || 0) - angsuranList.length);
+      const status = sisaPokok <= 0 ? "Lunas" : (tenorSisa <= 0 && sisaPokok > 0 ? "Macet" : "Lancar");
+
+      summaryPlafon += plafon;
+      summarySisaPokok += sisaPokok;
+      summaryJasa += totalJasa; // or potential interest? We just use total collected for now
+      if (status === "Macet" || status === "Diragukan") nplCount++;
+
+      dummyData.push({
+        id: loan.memberId || "-",
+        nama: loan.member ? (loan.member.includes(" - ") ? loan.member.split(" - ")[1] : loan.member) : "Umum",
+        noRef: loan.id,
+        tglCair: loan.date,
+        plafon,
+        sisaPokok,
+        tenorSisa,
+        status,
+        angsuranList
+      });
+    });
+  }
+
+  const nplPercentage = dummyData.length > 0 ? ((nplCount / dummyData.length) * 100).toFixed(1) : "0";
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(val);
@@ -68,22 +105,22 @@ export default function LaporanPinjamanPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard 
           title="Total Pinjaman Aktif" 
-          value="Rp 1.250.000.000" 
-          sub="342 Anggota" 
+          value={formatCurrency(summaryPlafon)} 
+          sub={`${dummyData.filter(d => d.status !== "Lunas").length} Anggota`} 
           icon={ArrowUpRight} 
           color="blue" 
         />
         <MetricCard 
           title="Total Sisa Pokok" 
-          value="Rp 840.500.000" 
+          value={formatCurrency(summarySisaPokok)} 
           sub="Belum Terbayar" 
           icon={HandCoins} 
           color="amber" 
         />
         <MetricCard 
-          title="Proyeksi Bunga (Tahun Ini)" 
-          value="Rp 120.500.000" 
-          sub="Potensi Pendapatan" 
+          title="Total Jasa / Bunga" 
+          value={formatCurrency(summaryJasa)} 
+          sub="Pendapatan Diterima" 
           icon={ArrowDownRight} 
           color="emerald" 
         />
@@ -93,7 +130,7 @@ export default function LaporanPinjamanPage() {
           </div>
           <div className="relative z-10">
             <p className="text-sm font-medium text-rose-600 mb-1">Kredit Bermasalah (NPL)</p>
-            <h4 className="text-2xl font-black text-gray-800">2.5%</h4>
+            <h4 className="text-2xl font-black text-gray-800">{nplPercentage}%</h4>
             <div className="flex items-center gap-1 mt-2 text-xs font-medium text-rose-500 bg-rose-50 w-max px-2 py-1 rounded-md">
               <span>Macet & Diragukan</span>
             </div>

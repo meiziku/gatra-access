@@ -8,6 +8,7 @@ import {
   Wallet,
   Scale
 } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Struktur COA Neraca dari Pengaturan
 const ASET_LANCAR_COA = [
@@ -56,55 +57,64 @@ const formatRupiah = (angka: number) => {
 };
 
 // Dummy Data Neraca (Balanced at Rp 1,135,000,000)
-const DUMMY_ASET_LANCAR: Record<string, number> = {
-  "Kas Simpan Pinjam": 250000000,
-  "Kas Pusat": 50000000,
-  "Bank": 150000000,
-  "Toko": 25000000,
-  "Piutang Pinjaman Anggota": 600000000,
-};
+const DUMMY_ASET_LANCAR: Record<string, number> = {};
 
-const DUMMY_ASET_TETAP: Record<string, number> = {
-  "Inventaris": 75000000,
-  "Akumulasi Penyusutan Inventaris": -15000000,
-};
+const DUMMY_ASET_TETAP: Record<string, number> = {};
 
-const DUMMY_KEWAJIBAN_LANCAR: Record<string, number> = {
-  "Beban yang akan dibayar": 5000000,
-  "Manasuka": 125000000,
-  "Tabungan Pendidikan": 55000000,
-};
+const DUMMY_KEWAJIBAN_LANCAR: Record<string, number> = {};
 
-const DUMMY_DANA: Record<string, number> = {
-  "Pendidikan": 10000000,
-  "Pengurus": 25000000,
-  "Kesejahteraan Pegawai": 15000000,
-  "Sosial": 5000000,
-  "Pemdaker": 5000000,
-};
+const DUMMY_DANA: Record<string, number> = {};
 
-const DUMMY_EKUITAS: Record<string, number> = {
-  "Simpanan Pokok": 150000000,
-  "Simpanan Wajib": 350000000,
-  "Toko": 50000000,
-  "Dana Cadangan": 120000000,
-  "Seragam": 20000000,
-  "SHU Tahun Berjalan": 200000000,
-};
+const DUMMY_EKUITAS: Record<string, number> = {};
 
   export default function LaporanNeracaPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
+  const { transactions } = useAnggota();
+  
+  // Aggregate from transactions
+  let kasSP = 0;
+  let sPokok = 0;
+  let sWajib = 0;
+  let sManasuka = 0;
+  let sPendidikan = 0;
+  let piutangPinjaman = 0;
+  let shuBunga = 0;
+
+  if (transactions) {
+    transactions.forEach((t: any) => {
+      const net = t.debit - t.kredit; // for normal accounts (debit = in, kredit = out)
+      kasSP += net;
+      if (t.description === "Simpanan Pokok") sPokok += net;
+      if (t.description === "Simpanan Wajib") sWajib += net;
+      if (t.description === "Simpanan Manasuka") sManasuka += net;
+      if (t.description === "Simpanan Pendidikan") sPendidikan += net;
+      
+      // Pinjaman (Pencairan) is outgoing cash (kredit), so it increases piutang
+      if (t.description === "Pinjaman (Pencairan)") piutangPinjaman += Math.max(t.kredit, t.debit);
+      
+      // Angsuran is incoming cash (debit), so it decreases piutang
+      if (t.description === "Angsuran Pinjaman") piutangPinjaman -= Math.max(t.kredit, t.debit);
+      
+      // Jasa/Bunga is incoming cash, counts as Pendapatan (SHU)
+      if (t.description === "Jasa / Bunga") shuBunga += Math.max(t.kredit, t.debit);
+    });
+  }
+
+  // Override dummy data with computed values
+  const asetLancarData = { ...DUMMY_ASET_LANCAR, "Kas Simpan Pinjam": kasSP, "Piutang Pinjaman Anggota": piutangPinjaman };
+  const kewajibanLancarData = { ...DUMMY_KEWAJIBAN_LANCAR, "Manasuka": sManasuka, "Tabungan Pendidikan": sPendidikan };
+  const ekuitasData = { ...DUMMY_EKUITAS, "Simpanan Pokok": sPokok, "Simpanan Wajib": sWajib, "SHU Tahun Berjalan": shuBunga };
 
   // Kalkulasi
-  const totalAsetLancar = ASET_LANCAR_COA.reduce((sum, coa) => sum + (DUMMY_ASET_LANCAR[coa] || 0), 0);
+  const totalAsetLancar = ASET_LANCAR_COA.reduce((sum, coa) => sum + (asetLancarData[coa] || 0), 0);
   const totalAsetTetap = ASET_TETAP_COA.reduce((sum, coa) => sum + (DUMMY_ASET_TETAP[coa] || 0), 0);
   const totalAset = totalAsetLancar + totalAsetTetap;
 
-  const totalKewajibanLancar = KEWAJIBAN_LANCAR_COA.reduce((sum, coa) => sum + (DUMMY_KEWAJIBAN_LANCAR[coa] || 0), 0);
+  const totalKewajibanLancar = KEWAJIBAN_LANCAR_COA.reduce((sum, coa) => sum + (kewajibanLancarData[coa] || 0), 0);
   const totalDana = DANA_COA.reduce((sum, coa) => sum + (DUMMY_DANA[coa] || 0), 0);
   const totalKewajiban = totalKewajibanLancar + totalDana;
 
-  const totalEkuitas = EKUITAS_COA.reduce((sum, coa) => sum + (DUMMY_EKUITAS[coa] || 0), 0);
+  const totalEkuitas = EKUITAS_COA.reduce((sum, coa) => sum + (ekuitasData[coa] || 0), 0);
   const totalPasiva = totalKewajiban + totalEkuitas;
 
   return (
@@ -132,10 +142,6 @@ const DUMMY_EKUITAS: Record<string, number> = {
             </select>
           </div>
 
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-            <Printer className="w-4 h-4" />
-            Cetak
-          </button>
           <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Download PDF
@@ -157,7 +163,7 @@ const DUMMY_EKUITAS: Record<string, number> = {
               <h4 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2 mb-3">Aset Lancar</h4>
               <div className="space-y-2">
                 {ASET_LANCAR_COA.map((coa, idx) => {
-                  const nominal = DUMMY_ASET_LANCAR[coa] || 0;
+                  const nominal = asetLancarData[coa] || 0;
                   if (nominal === 0) return null;
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
@@ -216,7 +222,7 @@ const DUMMY_EKUITAS: Record<string, number> = {
               <h4 className="font-bold text-blue-900 border-b border-blue-100 pb-2 mb-3">Kewajiban Lancar</h4>
               <div className="space-y-2">
                 {KEWAJIBAN_LANCAR_COA.map((coa, idx) => {
-                  const nominal = DUMMY_KEWAJIBAN_LANCAR[coa] || 0;
+                  const nominal = kewajibanLancarData[coa] || 0;
                   if (nominal === 0) return null;
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
@@ -255,7 +261,7 @@ const DUMMY_EKUITAS: Record<string, number> = {
               <h4 className="font-bold text-blue-900 border-b border-blue-100 pb-2 mb-3">Ekuitas / Modal</h4>
               <div className="space-y-2">
                 {EKUITAS_COA.map((coa, idx) => {
-                  const nominal = DUMMY_EKUITAS[coa] || 0;
+                  const nominal = ekuitasData[coa] || 0;
                   if (nominal === 0) return null;
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">

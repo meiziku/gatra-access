@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { AnggotaProvider } from "@/context/AnggotaContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} ${poppins.variable} h-full antialiased scroll-smooth`}>
       <body className="min-h-full flex flex-col font-sans text-foreground bg-background">
-        {children}
+        <AnggotaProvider>
+          {children}
+        </AnggotaProvider>
       </body>
     </html>
   );

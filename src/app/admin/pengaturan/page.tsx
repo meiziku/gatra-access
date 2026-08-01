@@ -31,9 +31,11 @@ import {
   PartyPopper,
   ShieldCheck
 } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function PengaturanPage() {
   const [activeTab, setActiveTab] = useState("koperasi");
+  const { bungaPinjaman, setBungaPinjaman } = useAnggota();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10 max-w-7xl mx-auto">
@@ -335,6 +337,11 @@ export default function PengaturanPage() {
               </h4>
               <div className="flex flex-col gap-3">
                 <InputSHU label="Besar Jasa Manasuka per Tahun" value="10" />
+                <InputSHU 
+                  label="Besar Jasa Pinjaman per Bulan" 
+                  value={bungaPinjaman} 
+                  onChange={(val) => setBungaPinjaman(Number(val))} 
+                />
               </div>
             </div>
           </div>
@@ -376,12 +383,18 @@ export default function PengaturanPage() {
   );
 }
 
-function InputSHU({ label, value }: { label: string, value: string }) {
+function InputSHU({ label, value, onChange }: { label: string, value: string | number, onChange?: (val: string) => void }) {
   return (
     <div className="flex items-center justify-between gap-4 p-3 bg-gray-50/50 border border-gray-100 rounded-xl">
       <label className="text-sm font-semibold text-gray-700">{label}</label>
       <div className="relative w-28 shrink-0">
-        <input type="number" defaultValue={value} step="0.1" className="w-full border border-gray-300 rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors text-sm font-bold text-gray-800 text-right" />
+        <input 
+          type="number" 
+          value={value} 
+          onChange={(e) => onChange ? onChange(e.target.value) : undefined}
+          step="0.1" 
+          className="w-full border border-gray-300 rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors text-sm font-bold text-gray-800 text-right" 
+        />
         <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
           <span className="text-gray-500 text-sm font-medium">%</span>
         </div>

@@ -245,21 +245,21 @@ export default function TransaksiUmumPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <MetricCard 
           title="Total Pemasukan" 
-          value="Rp 45.500.000" 
+          value="Rp 0" 
           sub="Bulan ini" 
           icon={ArrowDownLeft} 
           color="emerald" 
         />
         <MetricCard 
           title="Total Pengeluaran" 
-          value="Rp 12.000.000" 
+          value="Rp 0" 
           sub="Bulan ini" 
           icon={ArrowUpRight} 
           color="amber" 
         />
         <MetricCard 
           title="Saldo Kas Umum" 
-          value="Rp 300.850.000" 
+          value="Rp 0" 
           sub="Per Hari Ini" 
           icon={BookOpen} 
           color="blue" 
@@ -336,50 +336,6 @@ export default function TransaksiUmumPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <tr className="bg-blue-50/50">
-                <td colSpan={3} className="px-6 py-3 font-bold text-gray-800 text-right">
-                  Saldo Bawaan (Halaman Sebelumnya)
-                </td>
-                <td colSpan={2} className="px-6 py-3 text-right"></td>
-                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 316.500.000</td>
-                <td className="px-6 py-3"></td>
-              </tr>
-              <KasRow 
-                date="23 Jul 2026" refNo="TRX-OUT-002" 
-                desc="Pembayaran Tagihan Listrik & Air"
-                debit="-" kredit="Rp 500.000"
-                saldo="Rp 316.000.000"
-              />
-              <KasRow 
-                date="24 Jul 2026" refNo="TRX-IN-003" 
-                desc="Penerimaan Jasa Giro Bank"
-                debit="Rp 1.000.000" kredit="-"
-                saldo="Rp 317.000.000"
-              />
-              <KasRow 
-                date="25 Jul 2026" refNo="TRX-IN-002" 
-                desc="Pemasukan Lain-lain"
-                debit="Rp 1.250.000" kredit="-"
-                saldo="Rp 318.250.000"
-              />
-              <KasRow 
-                date="25 Jul 2026" refNo="TRX-OUT-001" 
-                desc="Pembelian Inventaris Kantor"
-                debit="-" kredit="Rp 12.500.000"
-                saldo="Rp 305.750.000"
-              />
-              <KasRow 
-                date="26 Jul 2026" refNo="MUT-OUT-001" 
-                desc="Mutasi Kas Umum ke Bank"
-                debit="-" kredit="Rp 5.000.000"
-                saldo="Rp 300.750.000"
-              />
-              <KasRow 
-                date="26 Jul 2026" refNo="TRX-IN-001" 
-                desc="Pendapatan Administrasi"
-                debit="Rp 100.000" kredit="-"
-                saldo="Rp 300.850.000"
-              />
             </tbody>
           </table>
         </div>
@@ -397,14 +353,11 @@ export default function TransaksiUmumPage() {
             <span>baris</span>
           </div>
           
-          <div>Menampilkan 1.190 hingga 1.204 dari 1.204 transaksi</div>
+          <div>Menampilkan 0 hingga 0 dari 0 transaksi</div>
           
           <div className="flex gap-1">
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">Seb</button>
-            <span className="px-2 py-1">...</span>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">79</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">80</button>
-            <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 rounded font-medium transition-colors">81</button>
+            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Seb</button>
+            <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 rounded font-medium transition-colors">1</button>
             <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Lanjut</button>
           </div>
         </div>

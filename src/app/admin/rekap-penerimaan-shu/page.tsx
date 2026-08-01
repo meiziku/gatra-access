@@ -8,6 +8,7 @@ import {
   Search,
   Users
 } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Helper format angka ribuan
 const formatRupiah = (angka: number) => {
@@ -16,90 +17,42 @@ const formatRupiah = (angka: number) => {
   }).format(angka);
 };
 
-// Dummy Data
-const DUMMY_REKAP_SHU = [
-  { 
-    no: 1, 
-    nama: "Budi Santoso", 
-    simpPokok: 1000000, 
-    simpWajib: 15000000, 
-    angsuran: 5000000, 
-    jasa: 1500000, 
-    shuPokok: 250000, 
-    shuWajib: 1250000, 
-    shuPinjaman: 450000 
-  },
-  { 
-    no: 2, 
-    nama: "Siti Rahmawati", 
-    simpPokok: 1000000, 
-    simpWajib: 12500000, 
-    angsuran: 0, 
-    jasa: 0, 
-    shuPokok: 250000, 
-    shuWajib: 1100000, 
-    shuPinjaman: 0 
-  },
-  { 
-    no: 3, 
-    nama: "Agus Pratama", 
-    simpPokok: 1000000, 
-    simpWajib: 20000000, 
-    angsuran: 10000000, 
-    jasa: 3000000, 
-    shuPokok: 250000, 
-    shuWajib: 1800000, 
-    shuPinjaman: 900000 
-  },
-  { 
-    no: 4, 
-    nama: "Dewi Lestari", 
-    simpPokok: 1000000, 
-    simpWajib: 8000000, 
-    angsuran: 2500000, 
-    jasa: 750000, 
-    shuPokok: 250000, 
-    shuWajib: 700000, 
-    shuPinjaman: 225000 
-  },
-  { 
-    no: 5, 
-    nama: "Hendra Wijaya", 
-    simpPokok: 1000000, 
-    simpWajib: 5000000, 
-    angsuran: 1200000, 
-    jasa: 360000, 
-    shuPokok: 250000, 
-    shuWajib: 450000, 
-    shuPinjaman: 110000 
-  },
-  { 
-    no: 6, 
-    nama: "Nina Safitri", 
-    simpPokok: 1000000, 
-    simpWajib: 18000000, 
-    angsuran: 4000000, 
-    jasa: 1200000, 
-    shuPokok: 250000, 
-    shuWajib: 1600000, 
-    shuPinjaman: 360000 
-  },
-  { 
-    no: 7, 
-    nama: "Reza Oktavian", 
-    simpPokok: 1000000, 
-    simpWajib: 2500000, 
-    angsuran: 0, 
-    jasa: 0, 
-    shuPokok: 250000, 
-    shuWajib: 200000, 
-    shuPinjaman: 0 
-  },
-];
-
 export default function RekapPenerimaanSHUPage() {
+  const { members, transactions } = useAnggota();
   const [selectedYear, setSelectedYear] = useState("2026");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const DUMMY_REKAP_SHU = members.map((m, index) => {
+    let simpPokok = 0;
+    let simpWajib = 0;
+    let angsuran = 0;
+    let jasa = 0;
+
+    if (transactions) {
+      transactions.forEach((t: any) => {
+        if (t.memberId === m.id) {
+          const net = t.debit - t.kredit;
+          if (t.description === "Simpanan Pokok") simpPokok += net;
+          if (t.description === "Simpanan Wajib") simpWajib += net;
+          
+          if (t.description === "Angsuran Pinjaman") angsuran += Math.max(t.debit, t.kredit);
+          if (t.description === "Jasa / Bunga") jasa += Math.max(t.debit, t.kredit);
+        }
+      });
+    }
+
+    return {
+      no: index + 1,
+      nama: m.name,
+      simpPokok,
+      simpWajib,
+      angsuran,
+      jasa,
+      shuPokok: 0,
+      shuWajib: 0,
+      shuPinjaman: jasa, // Asumsi proporsi SHU pinjaman terkait langsung dengan jasa yg disetor
+    };
+  });
 
   const filteredData = DUMMY_REKAP_SHU.filter(item => 
     item.nama.toLowerCase().includes(searchQuery.toLowerCase())
@@ -142,10 +95,6 @@ export default function RekapPenerimaanSHUPage() {
             </select>
           </div>
 
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-            <Printer className="w-4 h-4" />
-            Cetak
-          </button>
           <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Download PDF

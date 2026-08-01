@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useState, useEffect, useRef } from "react";
-import { Wallet, Search, Filter, Download, Landmark, PiggyBank, Briefcase, GraduationCap, PartyPopper, Plus, X } from "lucide-react";
+import { Wallet, Search, Filter, Download, Landmark, PiggyBank, Briefcase, GraduationCap, PartyPopper, Plus, X, ArrowUpDown } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function LaporanSimpananPage({ params }: { params: Promise<{ jenis: string }> }) {
   const resolvedParams = use(params);
@@ -77,15 +78,89 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
 
   const theme = getTheme(resolvedParams.jenis);
 
-  const dummyData = [
-    { id: "A001", nama: "Budi Santoso", dept: "IT", data: [150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000], totalPokok: 100000, tahunLalu: 1500000 },
-    { id: "A002", nama: "Siti Rahma", dept: "HR", data: [200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000], totalPokok: 100000, tahunLalu: 2000000 },
-    { id: "A003", nama: "Agus Pratama", dept: "Finance", data: [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000], totalPokok: 100000, tahunLalu: 1000000 },
-    { id: "A004", nama: "Dewi Lestari", dept: "Marketing", data: [250000, 250000, 0, 250000, 250000, 250000, 250000, 0, 250000, 250000, 250000, 250000], totalPokok: 100000, tahunLalu: 2500000 },
-    { id: "A005", nama: "Eko Prasetyo", dept: "Operations", data: [50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000], totalPokok: 100000, tahunLalu: 500000 },
-    { id: "A006", nama: "Nina Safitri", dept: "Legal", data: [300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000, 300000], totalPokok: 100000, tahunLalu: 3000000 },
-    { id: "A007", nama: "Rizky Firmansyah", dept: "Sales", data: [0, 0, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000], totalPokok: 100000, tahunLalu: 0 },
-  ];
+  const { members, pendidikanMembers, hariRayaMembers, setPendidikanMembers, setHariRayaMembers, transactions } = useAnggota();
+  const dummyData: any[] = members.filter(m => {
+    if (resolvedParams.jenis === 'pendidikan') return pendidikanMembers.some((p: any) => p.id === m.id);
+    if (resolvedParams.jenis === 'hari-raya') return hariRayaMembers.some((p: any) => p.id === m.id);
+    return true; // pokok, wajib, manasuka shows everyone
+  }).flatMap(m => {
+    
+    // Helper function to extract array of 12 months for this member & type
+    const getTransactionData = (descMatch: string, refPrefix?: string) => {
+      const data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      let totalPokok = 0; // Or Total All Months for this specific query
+      if (!transactions) return { data, totalPokok };
+      
+      transactions.forEach(t => {
+        if (t.memberId === m.id && t.description === descMatch) {
+          if (refPrefix && !t.id.startsWith(refPrefix)) return;
+          
+          const net = t.debit - t.kredit; // debit is positive change, kredit is negative
+          const parts = t.date.split('/');
+          if (parts.length >= 2) {
+             const monthIdx = parseInt(parts[1], 10) - 1;
+             if (monthIdx >= 0 && monthIdx < 12) {
+               data[monthIdx] += net;
+             }
+          }
+          totalPokok += net;
+        }
+      });
+      return { data, totalPokok };
+    };
+
+    if (resolvedParams.jenis === 'pendidikan') {
+      const pdks = pendidikanMembers.filter((p: any) => p.id === m.id);
+      return pdks.map((p: any) => {
+        const { data, totalPokok } = getTransactionData("Simpanan Pendidikan", p.ref);
+        return {
+          id: m.id,
+          nama: m.name,
+          dept: m.pekerjaan || '-',
+          data,
+          tahunLalu: 0,
+          totalPokok,
+          ref: p.ref,
+          target: p.target,
+          lamaBulan: p.lamaBulan,
+          cicilan: p.cicilan
+        };
+      });
+    }
+    if (resolvedParams.jenis === 'hari-raya') {
+      const thrs = hariRayaMembers.filter((p: any) => p.id === m.id);
+      return thrs.map((p: any) => {
+        const { data, totalPokok } = getTransactionData("Simpanan Hari Raya", p.ref);
+        return {
+          id: m.id,
+          nama: m.name,
+          dept: m.pekerjaan || '-',
+          data,
+          tahunLalu: 0,
+          totalPokok,
+          ref: p.ref,
+          target: p.nominalPaket * p.jumlahPaket,
+          lamaBulan: 12,
+          cicilan: p.cicilan
+        };
+      });
+    }
+    
+    let desc = "Simpanan Pokok";
+    if (resolvedParams.jenis === "wajib") desc = "Simpanan Wajib";
+    else if (resolvedParams.jenis === "manasuka") desc = "Simpanan Manasuka";
+    
+    const { data, totalPokok } = getTransactionData(desc);
+    
+    return [{
+      id: m.id,
+      nama: m.name,
+      dept: m.pekerjaan || '-',
+      data,
+      tahunLalu: 0,
+      totalPokok,
+    }];
+  });
 
   const formatCurrency = (val: number) => {
     if (val === 0) return "-";
@@ -93,6 +168,17 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
   };
 
   const [memberSearch, setMemberSearch] = useState("");
+  const [tableSearch, setTableSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc'|'desc'}>({ key: 'id', direction: 'asc' });
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -121,8 +207,12 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
     return Math.round((target * (1 - discountRate)) / months / 100) * 100;
   };
 
-  const autoRefPrefix = resolvedParams.jenis === 'hari-raya' ? "SP-RAYA-" : "SP-EDU-";
-  const [autoRef] = useState(autoRefPrefix + new Date().toISOString().replace(/\D/g, "").slice(0, 8) + "-" + Math.floor(Math.random() * 1000).toString().padStart(3, '0'));
+  const today = new Date();
+  const ddmmyy = String(today.getDate()).padStart(2, '0') + String(today.getMonth() + 1).padStart(2, '0') + String(today.getFullYear()).slice(-2);
+  const autoRefPrefix = resolvedParams.jenis === 'hari-raya' ? "THR-" : "EDU-";
+  const currentCount = resolvedParams.jenis === 'hari-raya' ? hariRayaMembers.length : pendidikanMembers.length;
+  const sequenceStr = String(currentCount + 1).padStart(2, '0');
+  const autoRef = autoRefPrefix + ddmmyy + "-" + sequenceStr;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -135,7 +225,11 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredMembers = dummyData.filter(m => m.nama.toLowerCase().includes(memberSearch.toLowerCase()) || m.id.toLowerCase().includes(memberSearch.toLowerCase()));
+  const filteredMembersForModal = members.map(m => ({
+    id: m.id,
+    nama: m.name,
+    dept: m.pekerjaan || '-',
+  })).filter(m => m.nama.toLowerCase().includes(memberSearch.toLowerCase()) || m.id.toLowerCase().includes(memberSearch.toLowerCase()));
 
   const handleMemberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isMemberDropdownOpen) {
@@ -145,14 +239,14 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
     
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setHighlightedIndex(prev => (prev < filteredMembers.length - 1 ? prev + 1 : prev));
+      setHighlightedIndex(prev => (prev < filteredMembersForModal.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < filteredMembers.length) {
-        setSelectedMember(filteredMembers[highlightedIndex]);
+      if (highlightedIndex >= 0 && highlightedIndex < filteredMembersForModal.length) {
+        setSelectedMember(filteredMembersForModal[highlightedIndex]);
         setIsMemberDropdownOpen(false);
         setMemberSearch("");
         setHighlightedIndex(-1);
@@ -191,7 +285,11 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
           </button>
           {(resolvedParams.jenis === 'pendidikan' || resolvedParams.jenis === 'hari-raya') && (
             <button 
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setSelectedMember(null);
+                setMemberSearch("");
+                setIsAddModalOpen(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm"
             >
               <Plus className="w-4 h-4" />
@@ -211,6 +309,8 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
              <input 
                type="text" 
                placeholder="Cari nama atau ID anggota..." 
+               value={tableSearch}
+               onChange={(e) => setTableSearch(e.target.value)}
                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
              />
            </div>
@@ -228,9 +328,10 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
              )}
              Menampilkan <span className="font-bold text-gray-800">
                {dummyData.filter(row => {
+                 if (tableSearch && !row.nama.toLowerCase().includes(tableSearch.toLowerCase()) && !row.id.toLowerCase().includes(tableSearch.toLowerCase()) && !row.dept.toLowerCase().includes(tableSearch.toLowerCase()) && !(row.ref && row.ref.toLowerCase().includes(tableSearch.toLowerCase()))) return false;
                  if (!showHasBalanceOnly || resolvedParams.jenis !== 'manasuka') return true;
                  const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
-                 const totalSemuanya = totalTahunIni + row.tahunLalu;
+                 const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                  return totalSemuanya > 0;
                }).length}
              </span> anggota
@@ -238,11 +339,35 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
         </div>
 
         {/* The Matrix Table */}
-        <div className="overflow-x-auto relative w-full pb-2">
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative w-full pb-2 custom-scrollbar">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-gray-500 bg-gray-50 border-b border-gray-100 uppercase tracking-wider">
+            <thead className="text-xs text-gray-500 bg-gray-50 border-b border-gray-100 uppercase tracking-wider sticky top-0 z-50 shadow-sm">
               <tr>
-                <th className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-0 z-20 bg-gray-100 shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)]">Nama Anggota</th>
+                {resolvedParams.jenis === 'pendidikan' || resolvedParams.jenis === 'hari-raya' ? (
+                  <>
+                    <th onClick={() => handleSort('ref')} className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-0 z-50 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors">
+                      <div className="flex items-center gap-1">No Referensi <ArrowUpDown className="w-3 h-3"/></div>
+                    </th>
+                    <th onClick={() => handleSort('nama')} className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-[110px] sm:left-[120px] z-30 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors">
+                      <div className="flex items-center gap-1">Nama Anggota <ArrowUpDown className="w-3 h-3"/></div>
+                    </th>
+                    <th className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-[230px] sm:left-[270px] z-20 bg-gray-100 shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      Info Simpanan
+                    </th>
+                  </>
+                ) : (
+                  <>
+                    <th onClick={() => handleSort('id')} className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-0 z-50 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors">
+                      <div className="flex items-center gap-1">ID <ArrowUpDown className="w-3 h-3"/></div>
+                    </th>
+                    <th onClick={() => handleSort('nama')} className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-[60px] sm:left-[80px] z-30 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors">
+                      <div className="flex items-center gap-1">Nama Anggota <ArrowUpDown className="w-3 h-3"/></div>
+                    </th>
+                    <th onClick={() => handleSort('dept')} className="px-2 py-3 font-bold whitespace-nowrap border-r border-gray-200 sticky left-[150px] sm:left-[220px] z-20 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <div className="flex items-center gap-1">Pekerjaan <ArrowUpDown className="w-3 h-3"/></div>
+                    </th>
+                  </>
+                )}
                 
                 {!isPokok && months.map(m => (
                   <th key={m} className="px-0.5 py-2 font-bold text-right text-xs whitespace-nowrap">{m}</th>
@@ -261,25 +386,58 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {dummyData.filter(row => {
+              {[...dummyData].filter(row => {
+                 if (tableSearch && !row.nama.toLowerCase().includes(tableSearch.toLowerCase()) && !row.id.toLowerCase().includes(tableSearch.toLowerCase()) && !row.dept.toLowerCase().includes(tableSearch.toLowerCase()) && !(row.ref && row.ref.toLowerCase().includes(tableSearch.toLowerCase()))) return false;
                  if (!showHasBalanceOnly || resolvedParams.jenis !== 'manasuka') return true;
                  const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
                  const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                  return totalSemuanya > 0;
+              }).sort((a, b) => {
+                 if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+                 if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+                 return 0;
               }).map((row) => {
                 const totalTahunIni = row.data.reduce((a, b) => a + b, 0);
                 const totalSemuanya = isPokok ? row.totalPokok : totalTahunIni + row.tahunLalu;
                 
                 return (
-                  <tr key={row.id} className={`transition-colors group ${theme.tableRowHover}`}>
-                    <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-0 z-20 bg-white shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)] ${theme.tableRowHover}`}>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-800 text-xs">{row.nama}</span>
-                        <span className="text-[10px] text-gray-500">{row.id} &bull; {row.dept}</span>
-                      </div>
-                    </td>
+                  <tr key={row.ref || row.id} className={`transition-colors group ${theme.tableRowHover}`}>
+                    {resolvedParams.jenis === 'pendidikan' || resolvedParams.jenis === 'hari-raya' ? (
+                      <>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-0 z-40 bg-white ${theme.tableRowHover}`}>
+                          <span className="font-bold text-gray-600 text-[11px]">{row.ref}</span>
+                        </td>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-[110px] sm:left-[120px] z-30 bg-white ${theme.tableRowHover}`}>
+                          <span className="font-bold text-gray-800 text-xs">{row.nama}</span>
+                        </td>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-[230px] sm:left-[270px] z-20 bg-white shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)] ${theme.tableRowHover}`}>
+                          <div className="text-[10px] text-gray-500 flex flex-col gap-0.5">
+                            {resolvedParams.jenis === 'pendidikan' ? (
+                              <>
+                                <span>T: Rp {formatCurrency(row.target)} | {row.lamaBulan}bln</span>
+                                <span className="text-blue-600 font-medium">Rp {formatCurrency(row.cicilan)}/bln</span>
+                              </>
+                            ) : (
+                              <span className="text-blue-600 font-medium">Rp {formatCurrency(row.cicilan)}/bln</span>
+                            )}
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-0 z-40 bg-white ${theme.tableRowHover}`}>
+                          <span className="font-bold text-gray-600 text-[11px]">{row.id}</span>
+                        </td>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-[60px] sm:left-[80px] z-30 bg-white ${theme.tableRowHover}`}>
+                          <span className="font-bold text-gray-800 text-xs">{row.nama}</span>
+                        </td>
+                        <td className={`px-2 py-2 whitespace-nowrap border-r border-gray-200 sticky left-[150px] sm:left-[220px] z-20 bg-white shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)] ${theme.tableRowHover}`}>
+                          <span className="text-[11px] text-gray-500">{row.dept}</span>
+                        </td>
+                      </>
+                    )}
                     
-                    {!isPokok && row.data.map((val, idx) => (
+                    {!isPokok && row.data.map((val: any, idx: number) => (
                       <td key={idx} className={`px-0.5 py-2 text-right font-mono text-xs whitespace-nowrap ${val === 0 ? 'text-gray-300' : 'text-gray-600'}`}>
                         {formatCurrency(val)}
                       </td>
@@ -306,8 +464,8 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
             {/* Table Footer / Summary */}
             <tfoot className="bg-gray-50 border-t-2 border-gray-200">
               <tr>
-                <td className="px-2 py-3 font-black text-gray-800 sticky left-0 z-20 bg-gray-100 border-r border-gray-300 text-right shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)] uppercase text-xs">
-                  Total
+                <td colSpan={3} className="px-2 py-3 font-bold text-right border-r border-gray-200 sticky left-0 z-20 bg-gray-100 shadow-[1px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                  Total Keseluruhan
                 </td>
                 
                 {!isPokok && months.map((_, idx) => {
@@ -404,8 +562,8 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
 
                 {isMemberDropdownOpen && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                    {filteredMembers.length > 0 ? (
-                      filteredMembers.map((m, index) => (
+                    {filteredMembersForModal.length > 0 ? (
+                      filteredMembersForModal.map((m, index) => (
                         <div 
                           key={m.id}
                           className={`px-4 py-2.5 cursor-pointer flex items-center gap-2 border-b border-gray-50 last:border-0 ${highlightedIndex === index ? 'bg-blue-50' : 'hover:bg-blue-50'}`}
@@ -513,7 +671,28 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
                 Batal
               </button>
               <button 
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => {
+                  if (selectedMember) {
+                    if (resolvedParams.jenis === 'pendidikan') {
+                      setPendidikanMembers(prev => [...prev, {
+                        id: selectedMember.id,
+                        ref: autoRef,
+                        target: parseInt(targetSaldo),
+                        lamaBulan: parseInt(lamaBulan),
+                        cicilan: calculateInstallment(parseInt(targetSaldo), parseInt(lamaBulan))
+                      }]);
+                    } else if (resolvedParams.jenis === 'hari-raya') {
+                      setHariRayaMembers(prev => [...prev, {
+                        id: selectedMember.id,
+                        ref: autoRef,
+                        nominalPaket: parseInt(nominalPaket),
+                        jumlahPaket: jumlahPaket,
+                        cicilan: parseInt(nominalPaket) * jumlahPaket
+                      }]);
+                    }
+                  }
+                  setIsAddModalOpen(false);
+                }}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
               >
                 Daftarkan Simpanan

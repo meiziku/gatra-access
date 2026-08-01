@@ -1,3 +1,5 @@
+"use client";
+
 import { 
   Users, 
   Wallet, 
@@ -10,8 +12,33 @@ import {
   History
 } from "lucide-react";
 import Link from "next/link";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function AdminDashboardPage() {
+  const { members, transactions } = useAnggota();
+  
+  let totalKas = 0;
+  let pinjamanBeredar = 0;
+  let shuSementara = 0;
+  let pinjamanCount = 0;
+  
+  if (transactions) {
+    transactions.forEach(t => {
+      if (t.description === "Pinjaman (Pencairan)") {
+         pinjamanBeredar += Math.max(t.debit, t.kredit);
+         pinjamanCount++;
+      }
+      if (t.description === "Angsuran Pinjaman") {
+         pinjamanBeredar -= Math.max(t.debit, t.kredit);
+      }
+      if (t.description === "Jasa / Bunga") {
+         shuSementara += Math.max(t.debit, t.kredit);
+      }
+      
+      // Kas SP Saldo
+      totalKas += (t.debit - t.kredit);
+    });
+  }
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
@@ -27,29 +54,29 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard 
           title="Total Anggota" 
-          value="1,248" 
-          trend="+12 bulan ini"
+          value={members.length.toString()} 
+          trend="Aktif"
           icon={Users}
           color="blue"
         />
         <MetricCard 
           title="Total Kas (Simpanan)" 
-          value="Rp 4.5M" 
-          trend="+5.2% dari bulan lalu"
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(totalKas)}`} 
+          trend="Tersedia"
           icon={Wallet}
           color="emerald"
         />
         <MetricCard 
           title="Pinjaman Beredar" 
-          value="Rp 2.1M" 
-          trend="48 aktif"
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(pinjamanBeredar)}`} 
+          trend={`${pinjamanCount} pinjaman tercatat`}
           icon={CreditCard}
           color="amber"
         />
         <MetricCard 
           title="SHU Sementara" 
-          value="Rp 340Jt" 
-          trend="+15% YoY"
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(shuSementara)}`} 
+          trend="Pendapatan Jasa"
           icon={TrendingUp}
           color="purple"
         />
@@ -79,12 +106,12 @@ export default function AdminDashboardPage() {
             
             {/* Bars */}
             {[
-              { month: "Jan", s: 40, p: 20 },
-              { month: "Feb", s: 45, p: 30 },
-              { month: "Mar", s: 60, p: 25 },
-              { month: "Apr", s: 50, p: 40 },
-              { month: "Mei", s: 70, p: 55 },
-              { month: "Jun", s: 85, p: 45 },
+              { month: "Jan", s: 0, p: 0 },
+              { month: "Feb", s: 0, p: 0 },
+              { month: "Mar", s: 0, p: 0 },
+              { month: "Apr", s: 0, p: 0 },
+              { month: "Mei", s: 0, p: 0 },
+              { month: "Jun", s: 0, p: 0 },
             ].map((data, i) => (
               <div key={i} className="flex flex-col items-center gap-2 flex-1 group">
                 <div className="flex items-end gap-1 w-full justify-center h-full relative">
@@ -125,24 +152,7 @@ export default function AdminDashboardPage() {
           </h3>
           
           <div className="flex-1 space-y-4">
-            <LogItem 
-              action="Mengubah persentase SHU"
-              user="Admin Gatra (Super Admin)"
-              time="2 jam yang lalu"
-              type="settings"
-            />
-            <LogItem 
-              action="Menghapus transaksi SP"
-              user="Budi (Bendahara)"
-              time="4 jam yang lalu"
-              type="delete"
-            />
-            <LogItem 
-              action="Menambahkan anggota baru"
-              user="Siti (Sekretaris)"
-              time="1 hari yang lalu"
-              type="add"
-            />
+            <p className="text-sm text-gray-500 text-center py-4">Belum ada aktivitas terbaru</p>
           </div>
 
           <Link href="/admin/log-aktivitas" className="mt-6 block text-center w-full py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors">
@@ -171,27 +181,6 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <ActivityRow 
-                name="Dewi Sartika" id="ANG-089"
-                type="Setoran Simpanan Wajib"
-                amount="+ Rp 100.000" isPositive={true}
-                status="Berhasil" statusColor="text-emerald-600 bg-emerald-50"
-                time="10:45 WIB"
-              />
-              <ActivityRow 
-                name="Hendra Gunawan" id="ANG-102"
-                type="Angsuran Pinjaman"
-                amount="+ Rp 550.000" isPositive={true}
-                status="Berhasil" statusColor="text-emerald-600 bg-emerald-50"
-                time="09:12 WIB"
-              />
-              <ActivityRow 
-                name="Rina Melati" id="ANG-234"
-                type="Pencairan Pinjaman"
-                amount="- Rp 2.000.000" isPositive={false}
-                status="Diproses" statusColor="text-amber-600 bg-amber-50"
-                time="Kemarin"
-              />
             </tbody>
           </table>
         </div>

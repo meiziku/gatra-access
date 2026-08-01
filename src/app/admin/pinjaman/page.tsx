@@ -43,9 +43,9 @@ export default function DataPinjamanPage() {
 
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <MetricCard title="Total Pinjaman Aktif" value="Rp 2.100.000.000" sub="48 Peminjam Aktif" icon={CreditCard} color="blue" />
-        <MetricCard title="Menunggu Persetujuan" value="Rp 120.000.000" sub="5 Pengajuan Baru" icon={CheckCircle} color="amber" />
-        <MetricCard title="Pinjaman Bermasalah" value="Rp 15.500.000" sub="2 Menunggak" icon={AlertTriangle} color="red" />
+        <MetricCard title="Total Pinjaman Aktif" value="Rp 0" sub="0 Peminjam Aktif" icon={CreditCard} color="blue" />
+        <MetricCard title="Menunggu Persetujuan" value="Rp 0" sub="0 Pengajuan Baru" icon={CheckCircle} color="amber" />
+        <MetricCard title="Pinjaman Bermasalah" value="Rp 0" sub="0 Menunggak" icon={AlertTriangle} color="red" />
       </div>
 
       {/* Filter & Search Bar */}
@@ -124,41 +124,6 @@ export default function DataPinjamanPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              <PinjamanRow 
-                name="Ahmad Rizki" id="PNJ-2026-001" 
-                type="Pinjaman Usaha (12 Bln)"
-                amount="Rp 12.500.000"
-                date="15 Ags 2026"
-                status="Lancar" statusColor="text-emerald-700 bg-emerald-50 border border-emerald-200"
-              />
-              <PinjamanRow 
-                name="Siti Nurhaliza" id="PNJ-2026-002" 
-                type="Pinjaman Konsumtif (6 Bln)"
-                amount="Rp 3.000.000"
-                date="01 Sep 2026"
-                status="Menunggu Persetujuan" statusColor="text-blue-700 bg-blue-50 border border-blue-200"
-              />
-              <PinjamanRow 
-                name="Budi Santoso" id="PNJ-2026-003" 
-                type="Pinjaman Darurat (3 Bln)"
-                amount="Rp 1.500.000"
-                date="20 Jul 2026"
-                status="Menunggak" statusColor="text-red-700 bg-red-50 border border-red-200"
-              />
-              <PinjamanRow 
-                name="Dewi Sartika" id="PNJ-2025-089" 
-                type="Pinjaman Pendidikan (24 Bln)"
-                amount="Rp 0"
-                date="10 Jul 2026"
-                status="Lunas" statusColor="text-gray-700 bg-gray-100 border border-gray-200"
-              />
-              <PinjamanRow 
-                name="Hendra Gunawan" id="PNJ-2026-005" 
-                type="Pinjaman Usaha (12 Bln)"
-                amount="Rp 8.000.000"
-                date="25 Ags 2026"
-                status="Lancar" statusColor="text-emerald-700 bg-emerald-50 border border-emerald-200"
-              />
             </tbody>
           </table>
         </div>

@@ -17,19 +17,14 @@ import {
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 export default function DataAnggotaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   
-  const [members, setMembers] = useState([
-    { name: "Dewi Sartika", id: "GT001", email: "dewi.sartika@email.com", date: "2025-01-12", status: "Aktif", statusColor: "text-emerald-700 bg-emerald-50 border border-emerald-200", pekerjaan: "ASN", phone: "081234567890", address: "Jl. Merdeka No.1" },
-    { name: "Hendra Gunawan", id: "GT002", email: "hendra.g@email.com", date: "2025-02-05", status: "Aktif", statusColor: "text-emerald-700 bg-emerald-50 border border-emerald-200", pekerjaan: "NON ASN", phone: "081298765432", address: "Jl. Sudirman No.5" },
-    { name: "Rina Melati", id: "GT003", email: "rina.melati@email.com", date: "2025-03-20", status: "Non-Aktif", statusColor: "text-gray-700 bg-gray-100 border border-gray-200", pekerjaan: "ASN", phone: "085612341234", address: "Jl. Thamrin No.10" },
-    { name: "Budi Santoso", id: "GT004", email: "budi.s@email.com", date: "2025-04-10", status: "Aktif", statusColor: "text-emerald-700 bg-emerald-50 border border-emerald-200", pekerjaan: "NON ASN", phone: "087812312312", address: "Jl. Gatot Subroto No.3" },
-    { name: "Siti Nurhaliza", id: "GT005", email: "siti.n@email.com", date: "2025-05-01", status: "Menunggu Verifikasi", statusColor: "text-amber-700 bg-amber-50 border border-amber-200", pekerjaan: "ASN", phone: "089912345678", address: "Jl. Asia Afrika No.8" },
-  ]);
+  const { members, setMembers } = useAnggota();
 
   const existingIds = members.map(m => m.id);
   
@@ -47,6 +42,9 @@ export default function DataAnggotaPage() {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   
   const isIdDuplicate = existingIds.includes(newMemberId);
   const isFormValid = newMemberName.trim() !== "" && newMemberId.trim() !== "" && !isIdDuplicate && newMemberDate.trim() !== "";
@@ -199,6 +197,20 @@ export default function DataAnggotaPage() {
     return 0;
   });
 
+  const filteredMembers = sortedMembers.filter((m: any) => 
+    m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    m.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const totalItems = filteredMembers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  
+  if (currentPage > totalPages && totalPages > 0) {
+    setCurrentPage(totalPages);
+  }
+  
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedMembers = filteredMembers.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
@@ -291,10 +303,7 @@ export default function DataAnggotaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sortedMembers.filter(m => 
-                m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                m.id.toLowerCase().includes(searchTerm.toLowerCase())
-              ).map((m, idx) => (
+              {paginatedMembers.map((m: any, idx: number) => (
                 <AnggotaRow 
                   key={idx} 
                   {...m} 
@@ -311,7 +320,14 @@ export default function DataAnggotaPage() {
         <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500 bg-gray-50/30">
           <div className="flex items-center gap-3">
             <span>Tampilkan</span>
-            <select className="border border-gray-200 rounded-lg py-1 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <select 
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded-lg py-1 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
               <option value="5">5</option>
               <option value="10">10</option>
               <option value="25">25</option>
@@ -321,15 +337,26 @@ export default function DataAnggotaPage() {
             <span>baris</span>
           </div>
           
-          <div>Menampilkan 1 hingga 5 dari 1.248 anggota</div>
+          <div>Menampilkan {totalItems === 0 ? 0 : startIndex + 1} hingga {Math.min(startIndex + itemsPerPage, totalItems)} dari {totalItems} anggota</div>
           
           <div className="flex gap-1">
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Seb</button>
-            <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-600 rounded font-medium transition-colors">1</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">2</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">3</button>
-            <span className="px-2 py-1">...</span>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">Lanjut</button>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            >
+              Seb
+            </button>
+            <div className="flex items-center gap-1 px-2">
+              <span className="font-medium text-gray-700">Hal {currentPage} dari {totalPages}</span>
+            </div>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            >
+              Lanjut
+            </button>
           </div>
         </div>
       </div>

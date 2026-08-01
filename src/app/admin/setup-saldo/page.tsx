@@ -19,11 +19,11 @@ export default function SetupSaldoPage() {
 
   // Manual Input State
   const [saldoAwal, setSaldoAwal] = useState({
-    kasTunai: "15000000",
-    bankBCA: "45000000",
-    bankMandiri: "35000000",
-    modalKoperasi: "85000000",
-    danaCadangan: "10000000",
+    kasTunai: "0",
+    bankBCA: "0",
+    bankMandiri: "0",
+    modalKoperasi: "0",
+    danaCadangan: "0",
   });
 
   const handleDragOver = (e: React.DragEvent) => {

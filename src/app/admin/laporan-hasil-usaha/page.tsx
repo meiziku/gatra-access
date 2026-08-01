@@ -9,6 +9,7 @@ import {
   LineChart,
   Printer
 } from "lucide-react";
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Struktur COA Laba Rugi dari Pengaturan
 const PENDAPATAN_COA = [
@@ -61,29 +62,48 @@ const generateMonthlyData = (baseNominal: number, variance: number) => {
   });
 };
 
-const DUMMY_PENDAPATAN: Record<string, number[]> = {
-  "Pendapatan Bunga Pinjaman": generateMonthlyData(15000000, 0.1),
-  "Pendapatan Penjualan Produk": generateMonthlyData(4500000, 0.2),
-  "Pendapatan Penjualan Jasa": generateMonthlyData(2100000, 0.15),
-  "Pendapatan Bunga Bank": generateMonthlyData(500000, 0.05),
-  "Pendapatan Lain-Lain": generateMonthlyData(1250000, 0.3),
-};
-
-const DUMMY_PENGELUARAN: Record<string, number[]> = {
-  "Beban Gaji Karyawan": generateMonthlyData(8000000, 0.01), // Hampir tetap
-  "Beban Listrik, Telepon dan Air": generateMonthlyData(1500000, 0.1),
-  "Beban Operasional": generateMonthlyData(2500000, 0.2),
-  "Beban Konsumsi": generateMonthlyData(800000, 0.15),
-  "Beban ATK": generateMonthlyData(450000, 0.2),
-  "Beban Internet": generateMonthlyData(600000, 0.0), // Tetap
-  "Jasa Simpanan Sukarela": generateMonthlyData(1200000, 0.05),
-  "Beban Honor Pengurus": generateMonthlyData(3000000, 0.0), // Tetap
-  "Beban Asuransi": generateMonthlyData(750000, 0.05),
-  "Jasa Bank": generateMonthlyData(150000, 0.1),
-};
-
 export default function LaporanHasilUsahaPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
+  const { transactions } = useAnggota();
+
+  const DUMMY_PENDAPATAN: Record<string, number[]> = {};
+  const DUMMY_PENGELUARAN: Record<string, number[]> = {};
+
+  // Inisialisasi semua COA dengan array 12 bulan (0)
+  PENDAPATAN_COA.forEach(coa => DUMMY_PENDAPATAN[coa] = new Array(12).fill(0));
+  PENGELUARAN_COA.forEach(coa => DUMMY_PENGELUARAN[coa] = new Array(12).fill(0));
+
+  if (transactions) {
+    transactions.forEach(t => {
+      // Pastikan format date adalah DD/MM/YYYY
+      if (!t.date || !t.date.includes("/")) return;
+      
+      const parts = t.date.split("/");
+      if (parts.length < 3) return;
+      
+      const monthIndex = parseInt(parts[1], 10) - 1; // 0-based
+      const year = parts[2];
+
+      if (year !== selectedYear) return;
+
+      const nominal = Math.max(t.debit, t.kredit);
+
+      // Mapping rules
+      if (t.description === "Jasa / Bunga") {
+        DUMMY_PENDAPATAN["Pendapatan Bunga Pinjaman"][monthIndex] += nominal;
+      }
+      else if (t.description === "Jasa Bank") {
+        if (t.debit > 0) {
+          DUMMY_PENDAPATAN["Pendapatan Bunga Bank"][monthIndex] += nominal;
+        } else {
+          DUMMY_PENGELUARAN["Jasa Bank"][monthIndex] += nominal;
+        }
+      }
+      else if (t.description === "Beban Admin Bank") {
+        DUMMY_PENGELUARAN["Jasa Bank"][monthIndex] += nominal;
+      }
+    });
+  }
 
   // Kalkulasi Total Tahunan (Semua Bulan) untuk keperluan metrik di atas
   let totalPendapatanSetahun = 0;
@@ -138,11 +158,6 @@ export default function LaporanHasilUsahaPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-            <Printer className="w-4 h-4" />
-            Cetak
-          </button>
           <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Download PDF

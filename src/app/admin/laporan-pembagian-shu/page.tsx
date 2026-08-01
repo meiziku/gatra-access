@@ -31,7 +31,7 @@ export default function LaporanPembagianSHUPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
   
   // State untuk input base SHU
-  const [baseShuString, setBaseShuString] = useState("124.835.601");
+  const [baseShuString, setBaseShuString] = useState("0");
   
   // Mengonversi input string (dengan titik) menjadi number
   const baseShu = parseInt(baseShuString.replace(/\./g, "")) || 0;
@@ -71,11 +71,6 @@ export default function LaporanPembagianSHUPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-
-          <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium text-sm">
-            <Printer className="w-4 h-4" />
-            Cetak
-          </button>
           <button className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Download PDF

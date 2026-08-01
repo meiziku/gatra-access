@@ -16,56 +16,11 @@ import {
   X,
   ChevronDown,
   ArrowRightLeft,
-  Building2
+  Building2,
+  MoreHorizontal
 } from "lucide-react";
 
-// Mock Data untuk pencarian anggota beserta data pinjaman aktif
-const MEMBERS = [
-  { 
-    id: "P-001", 
-    name: "Ahmad Rizki", 
-    loans: [
-      { id: "PINJ-20260726-001", type: "Pinjaman", balance: 35000000, installment: 2083333, interest: 150000 }
-    ],
-    pendidikan: []
-  },
-  { 
-    id: "P-002", 
-    name: "Budi Santoso", 
-    loans: [
-      { id: "PINJ-20260726-002", type: "Pinjaman", balance: 12000000, installment: 1250000, interest: 100000 }
-    ],
-    pendidikan: [
-      { id: "A001", account: "Budi Santoso", default_amount: 150000 }
-    ]
-  },
-  { 
-    id: "P-004", 
-    name: "Dewi Sartika", 
-    loans: [
-      { id: "PINJ-20260726-004", type: "Pinjaman", balance: 85000000, installment: 2777777, interest: 250000 }
-    ],
-    pendidikan: [
-      { id: "A004", account: "Dewi Sartika", default_amount: 250000 }
-    ]
-  },
-  { 
-    id: "P-005", 
-    name: "Hendra Gunawan", 
-    loans: [
-      { id: "PINJ-20260726-005", type: "Pinjaman", balance: 5000000, installment: 625000, interest: 50000 }
-    ],
-    pendidikan: []
-  },
-  { 
-    id: "P-003", 
-    name: "Siti Nurhaliza", 
-    loans: [
-      { id: "PINJ-20260726-003", type: "Pinjaman", balance: 5000000, installment: 1666666, interest: 120000 }
-    ],
-    pendidikan: []
-  },
-];
+import { useAnggota } from "@/context/AnggotaContext";
 
 // Helper untuk format tanggal hari ini DD/MM/YYYY
 const getTodayStr = () => {
@@ -99,6 +54,8 @@ export default function TransaksiSPPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   
+  const { members: MEMBERS, pendidikanMembers, hariRayaMembers, transactions, setTransactions, bungaPinjaman } = useAnggota();
+  
   // Custom Select State untuk Pencarian Anggota
   const [memberSearch, setMemberSearch] = useState("");
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
@@ -110,6 +67,8 @@ export default function TransaksiSPPage() {
   const [nominals, setNominals] = useState<Record<string, string>>({});
   const [selectedLoanId, setSelectedLoanId] = useState(""); // Pinjaman yang dipilih untuk Angsuran & Jasa
   const [selectedPendidikanId, setSelectedPendidikanId] = useState(""); // Rekening Pendidikan yang dipilih
+  const [pinjamanTenor, setPinjamanTenor] = useState("");
+  const [pinjamanCaraBayar, setPinjamanCaraBayar] = useState("Gaji/TPP");
 
   // Form States Mutasi
   const [mutasiDateStr, setMutasiDateStr] = useState(getTodayStr());
@@ -264,37 +223,83 @@ export default function TransaksiSPPage() {
 
   // Fungsi untuk memformat input angka menjadi ribuan dengan titik
   const handleNominalChange = (key: string, value: string) => {
+    const isNegative = value.startsWith("-");
     let rawValue = value.replace(/\D/g, "");
     if (rawValue) {
       let formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-      setNominals(prev => ({ ...prev, [key]: formattedValue }));
+      setNominals(prev => ({ ...prev, [key]: (isNegative ? "-" : "") + formattedValue }));
     } else {
-      setNominals(prev => ({ ...prev, [key]: "" }));
+      setNominals(prev => ({ ...prev, [key]: isNegative ? "-" : "" }));
     }
   };
 
-  // Auto-fill Simpanan Pendidikan
+  // Auto-fill Simpanan Pendidikan / Hari Raya
   useEffect(() => {
     if (selectedPendidikanId && selectedMember) {
-      const pdk = selectedMember.pendidikan?.find((p: any) => p.id === selectedPendidikanId);
-      if (pdk && pdk.default_amount) {
-        handleNominalChange("Simpanan Pendidikan", pdk.default_amount.toString());
+      const pdk = pendidikanMembers.find((p: any) => p.ref === selectedPendidikanId);
+      if (pdk) {
+        handleNominalChange("Simpanan Pendidikan", pdk.cicilan.toString());
       }
     }
   }, [selectedPendidikanId, selectedMember]);
+  
+  const [selectedHariRayaId, setSelectedHariRayaId] = useState("");
+  useEffect(() => {
+    if (selectedHariRayaId && selectedMember) {
+      const p = hariRayaMembers.find((p: any) => p.ref === selectedHariRayaId);
+      if (p) {
+        handleNominalChange("Simpanan Hari Raya", p.cicilan.toString());
+      }
+    }
+  }, [selectedHariRayaId, selectedMember]);
+
+  // Dinamis berdasarkan kepemilikan anggota
+  const activeLoans: any[] = [];
+  if (selectedMember && transactions) {
+    const memberLoans = transactions.filter(t => t.memberId === selectedMember.id && t.description === "Pinjaman (Pencairan)");
+    memberLoans.forEach(loan => {
+      const angsuran = transactions.filter(t => t.description === "Angsuran Pinjaman" && t.id.includes(loan.id));
+      const totalBayar = angsuran.reduce((sum, a) => sum + Math.max(a.debit, a.kredit), 0);
+      const plafon = Math.max(loan.debit, loan.kredit);
+      if (plafon - totalBayar > 0) {
+        activeLoans.push({
+          id: loan.id,
+          type: `Pinjaman Cair ${loan.date}`,
+          plafon,
+          installment: Math.round(plafon / (loan.tenor || 1)),
+          interest: Math.round(plafon * (bungaPinjaman / 100))
+        });
+      }
+    });
+  }
 
   // Auto-fill Angsuran dan Jasa
   useEffect(() => {
     if (selectedLoanId && selectedMember) {
-      const loan = selectedMember.loans?.find((l: any) => l.id === selectedLoanId);
+      const loan = activeLoans.find((l: any) => l.id === selectedLoanId);
       if (loan) {
-        if (loan.installment) handleNominalChange("Angsuran Pinjaman", loan.installment.toString());
-        if (loan.interest) handleNominalChange("Jasa / Bunga", loan.interest.toString());
+        handleNominalChange("Angsuran Pinjaman", loan.installment.toString());
+        handleNominalChange("Jasa / Bunga", loan.interest.toString());
       }
     }
   }, [selectedLoanId, selectedMember]);
 
-  // Jika modal transaksi ditutup
+  // Kalkulasi Metrics
+  let totalDebitBulanIni = 0;
+  let totalKreditBulanIni = 0;
+  let saldoAkhir = 0;
+  
+  const currentMonthStr = getTodayStr().substring(3); // extracts mm/yyyy
+
+  transactions.forEach(t => {
+    saldoAkhir += t.debit - t.kredit;
+    if (t.date.endsWith(currentMonthStr)) {
+      totalDebitBulanIni += t.debit;
+      totalKreditBulanIni += t.kredit;
+    }
+  });
+
+  // Jika modal transaksi diklik
   const closeTransaksiModal = () => {
     setIsModalOpen(false);
     setSelectedMember(null);
@@ -312,6 +317,42 @@ export default function TransaksiSPPage() {
     setMutasiNominal("");
   };
 
+  const handleDeleteTransaction = (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    }
+  };
+
+  const handleEditTransaction = (id: string) => {
+    const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+    const isDebit = tx.debit > 0;
+    const currentVal = isDebit ? tx.debit : tx.kredit;
+    const newValStr = prompt(`Masukkan nominal baru untuk ${tx.description} (${tx.id}):`, currentVal.toString());
+    if (newValStr !== null) {
+      const isNegative = newValStr.startsWith("-");
+      const nominalNum = parseInt(newValStr.replace(/\D/g, "")) || 0;
+      
+      let debit = 0;
+      let kredit = 0;
+      
+      if (tx.description === "Pinjaman (Pencairan)") {
+        if (isNegative) debit = nominalNum;
+        else kredit = nominalNum;
+      } else {
+        if (isNegative) kredit = nominalNum;
+        else debit = nominalNum;
+      }
+
+      setTransactions(prev => prev.map(t => {
+        if (t.id === id) {
+          return { ...t, debit, kredit };
+        }
+        return t;
+      }));
+    }
+  };
+
   // Jika modal bank ditutup
   const closeBankModal = () => {
     setIsBankModalOpen(false);
@@ -321,9 +362,53 @@ export default function TransaksiSPPage() {
     setBankNominal("");
   };
 
+  const handleBankSubmit = () => {
+    const nominal = parseInt(bankNominal.replace(/\D/g, "")) || 0;
+    if (nominal <= 0) return alert("Nominal bank tidak valid");
+    
+    const ddmmyy = bankDateStr.split("/").map(s => s.padStart(2, "0")).join("").substring(0, 6);
+    const index = (transactions.length + 1).toString().padStart(2, "0");
+    const newTx = {
+      id: `BNK-${ddmmyy}-${index}`,
+      date: bankDateStr,
+      memberId: "-",
+      member: "Kas Umum",
+      description: bankCategory === "admin_bank" ? "Beban Admin Bank" : "Jasa Bank",
+      debit: bankType === "pemasukan" ? nominal : 0,
+      kredit: bankType === "pengeluaran" ? nominal : 0,
+      isBank: true
+    };
+    
+    setTransactions(prev => [...prev, newTx]);
+    closeBankModal();
+  };
+
+  const handleMutasiSubmit = () => {
+    const nominal = parseInt(mutasiNominal.replace(/\D/g, "")) || 0;
+    if (nominal <= 0) return alert("Nominal mutasi tidak valid");
+    
+    const ddmmyy = mutasiDateStr.split("/").map(s => s.padStart(2, "0")).join("").substring(0, 6);
+    const index = (transactions.length + 1).toString().padStart(2, "0");
+    const newTx = {
+      id: `MTS-${ddmmyy}-${index}`,
+      date: mutasiDateStr,
+      memberId: "-",
+      member: "Kas Umum",
+      description: "Mutasi Kas Keluar",
+      debit: 0,
+      kredit: nominal,
+      isMutasi: true
+    };
+    
+    setTransactions(prev => [...prev, newTx]);
+    closeMutasiModal();
+  };
+
   // Dinamis berdasarkan kepemilikan anggota
-  const hasActiveLoans = selectedMember && selectedMember.loans && selectedMember.loans.length > 0;
-  const hasPendidikan = selectedMember && selectedMember.pendidikan && selectedMember.pendidikan.length > 0;
+
+  const hasActiveLoans = activeLoans.length > 0;
+  
+  const hasPendidikan = selectedMember && pendidikanMembers.some((p: any) => p.id === selectedMember.id);
   
   const transactionLabels = [
     "Simpanan Pokok", 
@@ -393,21 +478,21 @@ export default function TransaksiSPPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <MetricCard 
           title="Total Pemasukan (Debit)" 
-          value="Rp 45.500.000" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(totalDebitBulanIni)}`}
           sub="Bulan ini" 
           icon={ArrowDownLeft} 
           color="emerald" 
         />
         <MetricCard 
           title="Total Pengeluaran (Kredit)" 
-          value="Rp 12.000.000" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(totalKreditBulanIni)}`}
           sub="Bulan ini" 
           icon={ArrowUpRight} 
           color="amber" 
         />
         <MetricCard 
           title="Saldo Akhir Kas SP" 
-          value="Rp 300.850.000" 
+          value={`Rp ${new Intl.NumberFormat("id-ID").format(saldoAkhir)}`}
           sub="Per Hari Ini" 
           icon={BookOpen} 
           color="blue" 
@@ -444,21 +529,6 @@ export default function TransaksiSPPage() {
             onChange={(e) => setFilterEndDate(e.target.value)}
             className="block px-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
           />
-
-          <div className="relative flex-1 sm:flex-none">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-gray-400" />
-            </div>
-            <select className="block w-full pl-10 pr-8 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 text-gray-600 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors appearance-none cursor-pointer">
-              <option value="">Semua Transaksi</option>
-              <option value="pemasukan">Pemasukan (Debit)</option>
-              <option value="pengeluaran">Pengeluaran (Kredit)</option>
-            </select>
-          </div>
-          
-          <button className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
-            Reset
-          </button>
         </div>
       </div>
 
@@ -466,7 +536,7 @@ export default function TransaksiSPPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-gray-500 uppercase bg-gray-50/50 border-b border-gray-100">
+            <thead className="text-xs text-gray-500 uppercase bg-gray-50/50 border-b border-gray-100 sticky top-0 z-10 backdrop-blur-md">
               <tr>
                 <th className="px-6 py-4 font-medium">
                   Tanggal
@@ -484,79 +554,68 @@ export default function TransaksiSPPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
+              {(() => {
+                let currentSaldo = 0;
+                return transactions.map((t) => {
+                  currentSaldo += t.debit - t.kredit;
+                  return { ...t, saldo: currentSaldo };
+                }).map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {t.date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                      {t.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <div>
+                        <span className="font-semibold text-gray-800">{t.description}</span>
+                        <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 text-right">
+                      {t.debit > 0 ? `Rp ${new Intl.NumberFormat("id-ID").format(t.debit)}` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 text-right">
+                      {t.kredit > 0 ? `Rp ${new Intl.NumberFormat("id-ID").format(t.kredit)}` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800 text-right">
+                      Rp {new Intl.NumberFormat("id-ID").format(t.saldo)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => handleEditTransaction(t.id)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Nominal"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteTransaction(t.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Transaksi"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ));
+              })()}
               <tr className="bg-blue-50/50">
                 <td colSpan={3} className="px-6 py-3 font-bold text-gray-800 text-right">
                   Saldo Bawaan (Halaman Sebelumnya)
                 </td>
                 <td colSpan={2} className="px-6 py-3 text-right"></td>
-                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 316.500.000</td>
+                <td className="px-6 py-3 font-bold text-gray-800 text-right">Rp 0</td>
                 <td className="px-6 py-3"></td>
               </tr>
-              <KasRow 
-                date="23 Jul 2026" refNo="TRX-OUT-002" 
-                desc="Penarikan Simpanan Sukarela (Budi Santoso)"
-                debit="-" kredit="Rp 500.000"
-                saldo="Rp 316.000.000"
-              />
-              <KasRow 
-                date="24 Jul 2026" refNo="TRX-IN-003" 
-                desc="Setoran Simpanan Pokok (Siti Nurhaliza)"
-                debit="Rp 1.000.000" kredit="-"
-                saldo="Rp 317.000.000"
-              />
-              <KasRow 
-                date="25 Jul 2026" refNo="TRX-IN-002" 
-                desc="Angsuran Pinjaman (Dewi Sartika)"
-                debit="Rp 1.250.000" kredit="-"
-                saldo="Rp 318.250.000"
-              />
-              <KasRow 
-                date="25 Jul 2026" refNo="TRX-OUT-001" 
-                desc="Pencairan Pinjaman (Ahmad Rizki)"
-                debit="-" kredit="Rp 12.500.000"
-                saldo="Rp 305.750.000"
-              />
-              <KasRow 
-                date="26 Jul 2026" refNo="MUT-OUT-001" 
-                desc="Mutasi Kas SP ke Kas Toko"
-                debit="-" kredit="Rp 5.000.000"
-                saldo="Rp 300.750.000"
-              />
-              <KasRow 
-                date="26 Jul 2026" refNo="TRX-IN-001" 
-                desc="Setoran Simpanan Wajib (Hendra Gunawan)"
-                debit="Rp 100.000" kredit="-"
-                saldo="Rp 300.850.000"
-              />
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination & Items Per Page */}
-        <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500 bg-gray-50/30">
-          <div className="flex items-center gap-3">
-            <span>Tampilkan</span>
-            <select className="border border-gray-200 rounded-lg py-1 px-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              <option value="15">15</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>baris</span>
-          </div>
-          
-          <div>Menampilkan 1.190 hingga 1.204 dari 1.204 transaksi</div>
-          
-          <div className="flex gap-1">
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">Seb</button>
-            <span className="px-2 py-1">...</span>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">79</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 transition-colors">80</button>
-            <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-700 rounded font-medium transition-colors">81</button>
-            <button className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50 transition-colors" disabled>Lanjut</button>
-          </div>
-        </div>
       </div>
+
 
       {/* Modal Mutasi */}
       {isMutasiModalOpen && (
@@ -746,8 +805,8 @@ export default function TransaksiSPPage() {
                 Batal
               </button>
               <button 
-                onClick={closeBankModal}
-                className="px-5 py-2 text-sm font-medium text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20"
+                onClick={handleBankSubmit}
+                className="px-6 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-bold"
               >
                 Simpan Transaksi Bank
               </button>
@@ -882,6 +941,32 @@ export default function TransaksiSPPage() {
                           />
                         </div>
                       </div>
+
+                      {/* Input Tambahan untuk Pinjaman */}
+                      {label === "Pinjaman (Pencairan)" && nominals[label] && nominals[label] !== "0" && nominals[label] !== "-" && (
+                        <div className="flex justify-end mt-1 gap-2 w-full">
+                          <div className="w-[24%]">
+                            <input
+                              type="number"
+                              placeholder="Tenor (Bln)"
+                              value={pinjamanTenor}
+                              onChange={(e) => setPinjamanTenor(e.target.value)}
+                              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            />
+                          </div>
+                          <div className="w-[24%]">
+                            <select
+                              value={pinjamanCaraBayar}
+                              onChange={(e) => setPinjamanCaraBayar(e.target.value)}
+                              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            >
+                              <option value="Gaji">Gaji</option>
+                              <option value="TPP">TPP</option>
+                              <option value="Lainnya">Lainnya</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Pilihan Khusus Untuk Angsuran Pinjaman */}
                       {label === "Angsuran Pinjaman" && hasActiveLoans && (
@@ -893,9 +978,9 @@ export default function TransaksiSPPage() {
                               className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                             >
                               <option value="">-- Pilih Pinjaman --</option>
-                              {selectedMember.loans.map((loan: any) => (
+                              {activeLoans.map((loan: any) => (
                                 <option key={loan.id} value={loan.id}>
-                                  {loan.id} - {loan.type}
+                                  {loan.id} - {formatRibuan(loan.plafon.toString())}
                                 </option>
                               ))}
                             </select>
@@ -913,9 +998,29 @@ export default function TransaksiSPPage() {
                               className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                             >
                               <option value="">-- Pilih Rek. Pendidikan --</option>
-                              {selectedMember.pendidikan.map((pdk: any) => (
-                                <option key={pdk.id} value={pdk.id}>
-                                  {pdk.id} - {pdk.account}
+                              {pendidikanMembers.filter((p: any) => p.id === selectedMember.id).map((p: any) => (
+                                <option key={p.ref} value={p.ref}>
+                                  {p.ref} - Rp {new Intl.NumberFormat("id-ID").format(p.cicilan)}/bln
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pilihan Khusus Untuk Simpanan Hari Raya */}
+                      {label === "Simpanan Hari Raya" && hasHariRaya && (
+                        <div className="flex justify-end mt-0.5">
+                          <div className="w-1/2 flex flex-col">
+                            <select 
+                              value={selectedHariRayaId}
+                              onChange={(e) => setSelectedHariRayaId(e.target.value)}
+                              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            >
+                              <option value="">-- Pilih Rek. Hari Raya --</option>
+                              {hariRayaMembers.filter((p: any) => p.id === selectedMember.id).map((p: any) => (
+                                <option key={p.ref} value={p.ref}>
+                                  {p.ref} - Rp {new Intl.NumberFormat("id-ID").format(p.cicilan)}/bln
                                 </option>
                               ))}
                             </select>
@@ -937,7 +1042,7 @@ export default function TransaksiSPPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="hidden">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan Umum</label>
                 <textarea rows={2} placeholder="Keterangan tambahan jika diperlukan..." className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-sm"></textarea>
               </div>
@@ -952,7 +1057,78 @@ export default function TransaksiSPPage() {
                 Batal
               </button>
               <button 
-                onClick={closeTransaksiModal}
+                onClick={() => {
+                  const newTxs: any[] = [];
+                  const ddmmyy = dateStr.split('/').join('');
+                  
+                  let pkCount = transactions.filter(t => t.id.startsWith(`PK-${ddmmyy}`)).length + 1;
+                  let wjbCount = transactions.filter(t => t.id.startsWith(`WJB-${ddmmyy}`)).length + 1;
+                  let mnkCount = transactions.filter(t => t.id.startsWith(`MNK-${ddmmyy}`)).length + 1;
+                  let pnjCount = transactions.filter(t => t.id.startsWith(`PNJ-${ddmmyy}`)).length + 1;
+
+                  Object.keys(nominals).forEach(key => {
+                    const val = nominals[key];
+                    if (val && val !== "0" && val !== "-" && val !== "") {
+                      const isNegative = val.startsWith("-");
+                      const nominalNum = parseInt(val.replace(/\D/g, ""));
+                      const isPinjaman = key === "Pinjaman (Pencairan)";
+                      
+                      let debit = 0;
+                      let kredit = 0;
+                      
+                      if (isPinjaman) {
+                        if (isNegative) debit = nominalNum;
+                        else kredit = nominalNum;
+                      } else {
+                        if (isNegative) kredit = nominalNum;
+                        else debit = nominalNum;
+                      }
+
+                      let refId = `TRX-${Math.floor(Math.random() * 1000000)}`;
+                      if (key === "Simpanan Pokok") {
+                        refId = `PK-${ddmmyy}-${pkCount.toString().padStart(2, '0')}`;
+                        pkCount++;
+                      } else if (key === "Simpanan Wajib") {
+                        refId = `WJB-${ddmmyy}-${wjbCount.toString().padStart(2, '0')}`;
+                        wjbCount++;
+                      } else if (key === "Simpanan Manasuka") {
+                        refId = `MNK-${ddmmyy}-${mnkCount.toString().padStart(2, '0')}`;
+                        mnkCount++;
+                      } else if (key === "Simpanan Pendidikan") {
+                        const count = transactions.filter(t => t.id.startsWith(`${selectedPendidikanId}-`)).length + 1;
+                        refId = `${selectedPendidikanId}-${count.toString().padStart(2, '0')}`;
+                      } else if (key === "Pinjaman (Pencairan)") {
+                        refId = `PNJ-${ddmmyy}-${pnjCount.toString().padStart(2, '0')}`;
+                        pnjCount++;
+                      } else if (key === "Angsuran Pinjaman") {
+                        const count = transactions.filter(t => t.id.startsWith(`AN-${selectedLoanId}-`)).length + 1;
+                        refId = `AN-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
+                      } else if (key === "Jasa / Bunga") {
+                        const count = transactions.filter(t => t.id.startsWith(`JS-${selectedLoanId}-`)).length + 1;
+                        refId = `JS-${selectedLoanId}-${count.toString().padStart(2, '0')}`;
+                      }
+
+                      const txObj: any = {
+                        id: refId,
+                        date: dateStr,
+                        member: selectedMember ? `${selectedMember.id} - ${selectedMember.name}` : "Umum",
+                        memberId: selectedMember ? selectedMember.id : null,
+                        description: key,
+                        debit,
+                        kredit,
+                      };
+                      
+                      if (isPinjaman) {
+                         txObj.tenor = parseInt(pinjamanTenor) || 0;
+                         txObj.caraPembayaran = pinjamanCaraBayar;
+                      }
+
+                      newTxs.push(txObj);
+                    }
+                  });
+                  setTransactions(prev => [...prev, ...newTxs]);
+                  closeTransaksiModal();
+                }}
                 className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
               >
                 Simpan Transaksi
