@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signIn } from "@/lib/auth-client";
 
 export default function Home() {
   const router = useRouter();
@@ -13,21 +14,25 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
-    // Simulate login
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (username === "admin" && password === "123") {
-        router.push("/admin");
-      } else if (username === "budi" && password === "456") {
-        router.push("/anggota");
-      } else {
-        setError("Username atau password salah");
+    
+    const email = `${username}@gatra.local`;
+    
+    await signIn.email({
+      email,
+      password,
+    }, {
+      onSuccess: () => {
+        router.push("/admin"); // Or to member dashboard if role allows, but default to admin for now or let the user choose
+      },
+      onError: (ctx) => {
+        setError(ctx.error.message || "Username atau password salah");
+        setIsSubmitting(false);
       }
-    }, 1500);
+    });
   };
 
   return (

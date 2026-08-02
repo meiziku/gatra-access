@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { 
+import {  
   Search, 
   Filter, 
   PlusCircle, 
@@ -17,10 +17,15 @@ import {
   ChevronDown,
   ArrowRightLeft,
   Building2,
-  MoreHorizontal
-} from "lucide-react";
+  MoreHorizontal,
+  CheckCircle,
+  XCircle
+, ExternalLink } from "lucide-react";
 
+import NeracaBadge from "@/components/NeracaBadge";
 import { useAnggota } from "@/context/AnggotaContext";
+import GajiTPPModal from "@/components/GajiTPPModal";
+import { FileSpreadsheet } from "lucide-react";
 
 // Helper untuk format tanggal hari ini DD/MM/YYYY
 const getTodayStr = () => {
@@ -50,9 +55,11 @@ const getLastDayOfMonth = () => {
 export default function TransaksiSPPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMutasiModalOpen, setIsMutasiModalOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, txId: string}>({isOpen: false, txId: ""});
+  const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, txId: string, isGrouped?: boolean, gajiBatchId?: string}>({isOpen: false, txId: ""});
   const [editModal, setEditModal] = useState<{isOpen: boolean, tx: any, newVal: string}>({isOpen: false, tx: null, newVal: ""});
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isGajiModalOpen, setIsGajiModalOpen] = useState(false);
+  const [editGajiBatch, setEditGajiBatch] = useState<any>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   
@@ -300,11 +307,28 @@ export default function TransaksiSPPage() {
     if (t.id.startsWith("TRU-")) return false; // Transaksi Umum
     if (t.id.startsWith("BNK-")) return false; // Transaksi Bank
     if (t.id.startsWith("MTS-") && t.mutasiDari !== "kas_sp" && t.mutasiKe !== "kas_sp") return false; // Mutasi unrelated to SP
+    if (t.isMutasi && t.mutasiStatus === 'rejected' && t.mutasiKe === "kas_sp") return false; // Hide rejected mutasi for receiver
     return true;
+  }).map(t => {
+    if (t.isMutasi) {
+      const labels: Record<string, string> = { "kas_sp": "Kas SP", "kas_toko": "Kas Toko", "kas_umum": "Kas Umum", "bank": "Bank" };
+      let debit = 0;
+      let kredit = 0;
+      let description = t.description;
+      if (t.mutasiKe === "kas_sp") {
+        debit = t.nominalMutasi;
+        description = `Mutasi Masuk dari ${labels[t.mutasiDari] || t.mutasiDari}`;
+      } else if (t.mutasiDari === "kas_sp") {
+        kredit = t.nominalMutasi;
+        description = `Mutasi Keluar ke ${labels[t.mutasiKe] || t.mutasiKe}`;
+      }
+      return { ...t, debit, kredit, description };
+    }
+    return t;
   });
 
   spTransactions.forEach(t => {
-    let net = t.debit - t.kredit;
+    let net = (t.isMutasi && (t.mutasiStatus === 'pending' || t.mutasiStatus === 'rejected')) ? 0 : (t.debit - t.kredit);
     
     saldoAkhir += net;
     
@@ -332,11 +356,16 @@ export default function TransaksiSPPage() {
     setMutasiNominal("");
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    setDeleteConfirm({isOpen: true, txId: id});
+  const handleDeleteTransaction = (id: string, isGrouped: boolean = false, gajiBatchId: string = "") => {
+    setDeleteConfirm({isOpen: true, txId: id, isGrouped, gajiBatchId});
   };
 
-  const handleEditTransaction = (id: string) => {
+  const handleEditTransaction = (id: string, isBatch: boolean = false, tObj: any = null) => {
+    if (isBatch && tObj) {
+      setEditGajiBatch(tObj);
+      setIsGajiModalOpen(true);
+      return;
+    }
     const tx = transactions.find(t => t.id === id);
     if (!tx) return;
     const isDebit = tx.debit > 0;
@@ -373,10 +402,41 @@ export default function TransaksiSPPage() {
   // Generate filtered transactions with saldo
   let currentSaldo = 0;
   let txsWithSaldo = spTransactions.map((t) => {
-    let net = t.debit - t.kredit;
+    let net = (t.isMutasi && (t.mutasiStatus === 'pending' || t.mutasiStatus === 'rejected')) ? 0 : (t.debit - t.kredit);
     currentSaldo += net;
     return { ...t, saldo: currentSaldo };
   });
+
+  // Grouping for GajiBatch
+  let groupedTxs: any[] = [];
+  let processedBatches = new Set<string>();
+
+  txsWithSaldo.forEach(t => {
+    if (t.isGajiBatch && t.gajiBatchId) {
+      if (!processedBatches.has(t.gajiBatchId)) {
+        processedBatches.add(t.gajiBatchId);
+        const batchTxs = txsWithSaldo.filter(x => x.gajiBatchId === t.gajiBatchId);
+        const totalDebit = batchTxs.reduce((sum, x) => sum + (x.debit || 0), 0);
+        const totalKredit = batchTxs.reduce((sum, x) => sum + (x.kredit || 0), 0);
+        const lastTx = batchTxs[batchTxs.length - 1];
+        
+        groupedTxs.push({
+          ...t,
+          id: t.gajiBatchRef,
+          description: t.gajiBatchDesc,
+          debit: totalDebit,
+          kredit: totalKredit,
+          saldo: lastTx.saldo,
+          isGroupedBatch: true,
+          batchTxs: batchTxs
+        });
+      }
+    } else {
+      groupedTxs.push(t);
+    }
+  });
+
+  txsWithSaldo = groupedTxs;
   
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
@@ -440,7 +500,8 @@ export default function TransaksiSPPage() {
     
     const bankParts = bankDateStr.split("/");
     const ddmmyy = bankParts.length === 3 ? `${bankParts[0].padStart(2, "0")}${bankParts[1].padStart(2, "0")}${bankParts[2].slice(-2)}` : "";
-    const index = (transactions.length + 1).toString().padStart(2, "0");
+    const mutasiToday = transactions.filter(t => t.isMutasi && t.date === mutasiDateStr).length;
+    const index = (mutasiToday + 1).toString().padStart(2, "0");
     const newTx = {
       id: `BNK-${ddmmyy}-${index}`,
       date: bankDateStr,
@@ -497,7 +558,8 @@ export default function TransaksiSPPage() {
       isMutasi: true,
       mutasiDari: mutasiDariKas,
       mutasiKe: mutasiKeKas,
-      nominalMutasi: nominal
+      nominalMutasi: nominal,
+      mutasiStatus: 'pending'
     };
     
     setTransactions(prev => [...prev, newTx]);
@@ -674,26 +736,37 @@ export default function TransaksiSPPage() {
             </button>
           )}
           <button 
-            onClick={() => setIsMutasiModalOpen(true)}
-            className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20 font-medium text-sm"
-          >
-            <ArrowRightLeft className="w-4 h-4" />
-            Mutasi
-          </button>
-          <button 
-            onClick={() => setIsBankModalOpen(true)}
+            onClick={() => setIsGajiModalOpen(true)}
             className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-medium text-sm"
           >
-            <Building2 className="w-4 h-4" />
-            Bank
+            <FileSpreadsheet className="w-4 h-4" />
+            Gaji/TPP
           </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm"
-          >
-            <PlusCircle className="w-4 h-4" />
-            Transaksi
-          </button>
+          {["Super Admin", "Pengelola SP"].includes(currentRole) && (
+            <>
+              <button 
+                onClick={() => setIsMutasiModalOpen(true)}
+                className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20 font-medium text-sm"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                Mutasi
+              </button>
+              <button 
+                onClick={() => setIsBankModalOpen(true)}
+                className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-medium text-sm"
+              >
+                <Building2 className="w-4 h-4" />
+                Bank
+              </button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Transaksi
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -726,17 +799,20 @@ export default function TransaksiSPPage() {
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
         
         {/* Search */}
-        <div className="relative w-full md:max-w-xs">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
+        <div className="flex flex-1 items-center gap-4">
+          <div className="relative w-full md:max-w-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+              placeholder="Cari referensi atau keterangan..."
+            />
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-            placeholder="Cari referensi atau keterangan..."
-          />
+          <NeracaBadge />
         </div>
 
         {/* Filters */}
@@ -798,7 +874,13 @@ export default function TransaksiSPPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div>
                         <span className="font-semibold text-gray-800">{t.description}</span>
-                        {t.member !== "Kas Umum" && (
+                        {t.isMutasi && t.mutasiStatus === 'pending' && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Menunggu Persetujuan</span>
+                        )}
+                        {t.isMutasi && t.mutasiStatus === 'rejected' && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Ditolak</span>
+                        )}
+                        {t.member !== "Kas Umum" && t.member && !t.isGroupedBatch && (
                           <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
                         )}
                       </div>
@@ -814,20 +896,33 @@ export default function TransaksiSPPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleEditTransaction(t.id)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Nominal"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTransaction(t.id)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {t.isMutasi && t.mutasiStatus === 'pending' && t.mutasiKe === "kas_sp" ? (
+                           <>
+                             <button onClick={() => setTransactions(prev => prev.map(x => x.id === t.id ? {...x, mutasiStatus: 'approved'} : x))} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Setujui Mutasi">
+                               <CheckCircle className="w-4 h-4" />
+                             </button>
+                             <button onClick={() => setTransactions(prev => prev.map(x => x.id === t.id ? {...x, mutasiStatus: 'rejected'} : x))} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Tolak Mutasi">
+                               <XCircle className="w-4 h-4" />
+                             </button>
+                           </>
+                        ) : ["Super Admin", "Pengelola SP"].includes(currentRole) ? (
+                          <>
+                            <button 
+                              onClick={() => t.isGroupedBatch ? handleEditTransaction(t.id, true, t) : handleEditTransaction(t.id)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit Nominal"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTransaction(t.id, t.isGroupedBatch, t.gajiBatchId)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus Transaksi"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -1382,7 +1477,14 @@ export default function TransaksiSPPage() {
             </div>
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
               <button onClick={() => setDeleteConfirm({isOpen: false, txId: ""})} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
-              <button onClick={() => { setTransactions(prev => prev.filter(t => t.id !== deleteConfirm.txId)); setDeleteConfirm({isOpen: false, txId: ""}); }} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-500/20">Hapus</button>
+              <button onClick={() => { 
+                if (deleteConfirm.isGrouped && deleteConfirm.gajiBatchId) {
+                  setTransactions(prev => prev.filter(t => t.gajiBatchId !== deleteConfirm.gajiBatchId));
+                } else {
+                  setTransactions(prev => prev.filter(t => t.id !== deleteConfirm.txId));
+                }
+                setDeleteConfirm({isOpen: false, txId: ""}); 
+              }} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-500/20">Hapus</button>
             </div>
           </div>
         </div>
@@ -1415,6 +1517,20 @@ export default function TransaksiSPPage() {
           </div>
         </div>
       )}
+      <GajiTPPModal 
+      isOpen={isGajiModalOpen} 
+      onClose={() => {
+        setIsGajiModalOpen(false);
+        setTimeout(() => setEditGajiBatch(null), 300);
+      }} 
+      editBatch={editGajiBatch}
+      onSaveEdit={(oldBatchId, newTxs) => {
+        setTransactions(prev => {
+          const filtered = prev.filter(p => p.gajiBatchId !== oldBatchId);
+          return [...filtered, ...newTxs];
+        });
+      }}
+    />
     </div>
   );
 }

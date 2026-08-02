@@ -8,7 +8,8 @@ import {
   Wallet,
   Scale
 } from "lucide-react";
-import { useAnggota } from "@/context/AnggotaContext";
+import { useNeraca } from "@/hooks/useNeraca";
+import NeracaBadge from "@/components/NeracaBadge";
 
 // Struktur COA Laba Rugi dari Pengaturan
 const PENDAPATAN_COA = [
@@ -65,133 +66,26 @@ const DUMMY_EKUITAS: Record<string, number> = {};
 
   export default function LaporanNeracaPage() {
   const [selectedYear, setSelectedYear] = useState("2026");
-  const { transactions, coaNeraca, saldoAwalKoperasi } = useAnggota();
-  
-  // Extract COA structure
-  const ASET_LANCAR_COA = coaNeraca?.asetLancar?.map((c: any) => c.name) || [];
-  const ASET_TETAP_COA = coaNeraca?.asetTetap?.map((c: any) => c.name) || [];
-  const KEWAJIBAN_LANCAR_COA = coaNeraca?.kewajibanLancar?.map((c: any) => c.name) || [];
-  const DANA_COA = coaNeraca?.dana?.map((c: any) => c.name) || [];
-  const EKUITAS_COA = coaNeraca?.ekuitas?.map((c: any) => c.name) || [];
-  
-  // Aggregate from transactions
-  let kasSP = 0;
-  let kasPusat = 0;
-  let bank = 0;
-  let toko = 0;
-  let sPokok = 0;
-  let sWajib = 0;
-  let sManasuka = 0;
-  let sPendidikan = 0;
-  let piutangPinjaman = 0;
-  let shuTahunBerjalan = 0;
-
-  if (transactions) {
-    transactions.forEach((t: any) => {
-      if (t.isMutasi) {
-        const nominal = t.nominalMutasi || 0;
-        
-        // Kurangi dariKas
-        if (t.mutasiDari === "kas_sp") kasSP -= nominal;
-        if (t.mutasiDari === "kas_umum") kasPusat -= nominal;
-        if (t.mutasiDari === "bank") bank -= nominal;
-        if (t.mutasiDari === "kas_toko") toko -= nominal;
-        
-        // Tambah keKas
-        if (t.mutasiKe === "kas_sp") kasSP += nominal;
-        if (t.mutasiKe === "kas_umum") kasPusat += nominal;
-        if (t.mutasiKe === "bank") bank += nominal;
-        if (t.mutasiKe === "kas_toko") toko += nominal;
-      } else {
-        const net = (t.debit || 0) - (t.kredit || 0); // for normal accounts (debit = in, kredit = out)
-        
-        const isTxBank = t.isBank || t.description === "Jasa Bank" || t.description === "Beban Admin Bank" || t.id.startsWith("BNK-");
-
-        if (t.id.startsWith("TRU-")) {
-          kasPusat += net;
-        } else if (t.id.startsWith("BNK-")) {
-          bank += net;
-        } else {
-          kasSP += net;
-        }
-        
-        if (t.description === "Simpanan Pokok") sPokok += net;
-        if (t.description === "Simpanan Wajib") sWajib += net;
-        if (t.description === "Simpanan Manasuka") sManasuka += net;
-        if (t.description === "Simpanan Pendidikan") sPendidikan += net;
-        
-        // Pinjaman (Pencairan) is outgoing cash (kredit), so it increases piutang
-        if (t.description === "Pinjaman (Pencairan)") piutangPinjaman += Math.max(t.kredit, t.debit);
-        
-        // Angsuran is incoming cash (debit), so it decreases piutang
-        if (t.description === "Angsuran Pinjaman") piutangPinjaman -= Math.max(t.kredit, t.debit);
-        
-        // SHU Tahun Berjalan (Laba Bersih)
-        let txYear = "";
-        if (t.date && t.date.includes("/")) {
-          const parts = t.date.split("/");
-          if (parts.length >= 3) txYear = parts[2];
-        }
-        
-        if (txYear === selectedYear) {
-          const nominalTx = Math.max(t.kredit, t.debit);
-          if (t.description === "Jasa / Bunga") {
-            shuTahunBerjalan += nominalTx;
-          } else if (t.description === "Jasa Bank") {
-            if (t.debit > 0) {
-              shuTahunBerjalan += nominalTx;
-            } else {
-              shuTahunBerjalan -= nominalTx;
-            }
-          } else if (t.description === "Beban Admin Bank") {
-            shuTahunBerjalan -= nominalTx;
-          } else if (PENDAPATAN_COA.includes(t.description)) {
-            shuTahunBerjalan += nominalTx;
-          } else if (PENGELUARAN_COA.includes(t.description)) {
-            shuTahunBerjalan -= nominalTx;
-          }
-        }
-      }
-    });
-  }
-
-  // Initialize data with saldo awal if available
-  const asetLancarData: Record<string, number> = {};
-  ASET_LANCAR_COA.forEach((coa: string) => asetLancarData[coa] = saldoAwalKoperasi[coa] || 0);
-  asetLancarData["Kas Simpan Pinjam"] += kasSP;
-  asetLancarData["Kas Pusat"] += kasPusat;
-  asetLancarData["Bank"] += bank;
-  asetLancarData["Toko"] += toko;
-  asetLancarData["Piutang Pinjaman Anggota"] += piutangPinjaman;
-
-  const asetTetapData: Record<string, number> = {};
-  ASET_TETAP_COA.forEach((coa: string) => asetTetapData[coa] = saldoAwalKoperasi[coa] || 0);
-
-  const kewajibanLancarData: Record<string, number> = {};
-  KEWAJIBAN_LANCAR_COA.forEach((coa: string) => kewajibanLancarData[coa] = saldoAwalKoperasi[coa] || 0);
-  if (KEWAJIBAN_LANCAR_COA.includes("Manasuka")) kewajibanLancarData["Manasuka"] += sManasuka;
-  if (KEWAJIBAN_LANCAR_COA.includes("Tabungan Pendidikan")) kewajibanLancarData["Tabungan Pendidikan"] += sPendidikan;
-
-  const danaData: Record<string, number> = {};
-  DANA_COA.forEach((coa: string) => danaData[coa] = saldoAwalKoperasi[coa] || 0);
-
-  const ekuitasData: Record<string, number> = {};
-  EKUITAS_COA.forEach((coa: string) => ekuitasData[coa] = saldoAwalKoperasi[coa] || 0);
-  if (EKUITAS_COA.includes("Simpanan Pokok")) ekuitasData["Simpanan Pokok"] += sPokok;
-  if (EKUITAS_COA.includes("Simpanan Wajib")) ekuitasData["Simpanan Wajib"] += sWajib;
-  if (EKUITAS_COA.includes("SHU Tahun Berjalan")) ekuitasData["SHU Tahun Berjalan"] += shuTahunBerjalan;
-
-  // Kalkulasi
-  const totalAsetLancar = ASET_LANCAR_COA.reduce((sum: number, coa: string) => sum + (asetLancarData[coa] || 0), 0);
-  const totalAsetTetap = ASET_TETAP_COA.reduce((sum: number, coa: string) => sum + (asetTetapData[coa] || 0), 0);
-  const totalAset = totalAsetLancar + totalAsetTetap;
-
-  const totalKewajibanLancar = KEWAJIBAN_LANCAR_COA.reduce((sum: number, coa: string) => sum + (kewajibanLancarData[coa] || 0), 0);
-  const totalDana = DANA_COA.reduce((sum: number, coa: string) => sum + (danaData[coa] || 0), 0);
-  const totalKewajiban = totalKewajibanLancar + totalDana;
-
-  const totalEkuitas = EKUITAS_COA.reduce((sum: number, coa: string) => sum + (ekuitasData[coa] || 0), 0);
-  const totalPasiva = totalKewajiban + totalEkuitas;
+  const {
+    totalAset,
+    totalPasiva,
+    asetLancarData,
+    asetTetapData,
+    kewajibanLancarData,
+    danaData,
+    ekuitasData,
+    totalAsetLancar,
+    totalAsetTetap,
+    totalKewajibanLancar,
+    totalDana,
+    totalKewajiban,
+    totalEkuitas,
+    ASET_LANCAR_COA,
+    ASET_TETAP_COA,
+    KEWAJIBAN_LANCAR_COA,
+    DANA_COA,
+    EKUITAS_COA
+  } = useNeraca(selectedYear);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -203,7 +97,8 @@ const DUMMY_EKUITAS: Record<string, number> = {};
           <p className="text-gray-500 text-sm mt-1">Laporan posisi keuangan (Aset, Kewajiban, Ekuitas) per akhir tahun buku terpilih.</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <NeracaBadge />
           {/* Filter Tahun */}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2">
             <Filter className="w-4 h-4 text-gray-400" />
@@ -240,7 +135,7 @@ const DUMMY_EKUITAS: Record<string, number> = {};
               <div className="space-y-2">
                 {ASET_LANCAR_COA.map((coa: string, idx: number) => {
                   const nominal = asetLancarData[coa] || 0;
-                  if (nominal === 0) return null;
+                  
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-gray-700">{coa}</span>
@@ -261,7 +156,7 @@ const DUMMY_EKUITAS: Record<string, number> = {};
               <div className="space-y-2">
                 {ASET_TETAP_COA.map((coa: string, idx: number) => {
                   const nominal = asetTetapData[coa] || 0;
-                  if (nominal === 0) return null;
+                  
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-gray-700">{coa}</span>
@@ -299,7 +194,7 @@ const DUMMY_EKUITAS: Record<string, number> = {};
               <div className="space-y-2">
                 {KEWAJIBAN_LANCAR_COA.map((coa: string, idx: number) => {
                   const nominal = kewajibanLancarData[coa] || 0;
-                  if (nominal === 0) return null;
+                  
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-gray-700">{coa}</span>
@@ -316,7 +211,7 @@ const DUMMY_EKUITAS: Record<string, number> = {};
               <div className="space-y-2">
                 {DANA_COA.map((coa: string, idx: number) => {
                   const nominal = danaData[coa] || 0;
-                  if (nominal === 0) return null;
+                  
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-gray-700">{coa}</span>
@@ -338,7 +233,7 @@ const DUMMY_EKUITAS: Record<string, number> = {};
               <div className="space-y-2">
                 {EKUITAS_COA.map((coa: string, idx: number) => {
                   const nominal = ekuitasData[coa] || 0;
-                  if (nominal === 0) return null;
+                  
                   return (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-gray-700">{coa}</span>

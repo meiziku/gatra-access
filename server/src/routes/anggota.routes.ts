@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { requireAuth, requireRole } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
-import { createAnggotaSchema, updateAnggotaSchema, getAllAnggota, getAnggotaById, createAnggota, updateAnggota, deleteAnggota } from '../services/anggota.service'
+import { createAnggotaSchema, updateAnggotaSchema, getAllAnggota, getAnggotaById, createAnggota, updateAnggota, deleteAnggota, resetAnggotaPassword } from '../services/anggota.service'
 import { getRequestMeta } from '../lib/request'
 import { logActivity } from '../services/activity.service'
 
@@ -76,6 +76,23 @@ router.delete('/:id', requireAuth, requireRole('super_admin'), async (req, res) 
     }
     await logActivity({ userId: user.id, action: 'DELETE', module: 'anggota', refId: row.id, description: `Nonaktifkan anggota ${row.nama}`, ...getRequestMeta(req) })
     res.json({ success: true, data: row })
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+})
+
+// POST /api/anggota/:id/reset-password
+router.post('/:id/reset-password', requireAuth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const user = (req as any).user
+    const anggotaId = String(req.params.id)
+    const row = await resetAnggotaPassword(anggotaId)
+    if (!row) {
+      res.status(404).json({ success: false, message: 'Gagal mereset password anggota' })
+      return
+    }
+    await logActivity({ userId: user.id, action: 'UPDATE', module: 'anggota', refId: anggotaId, description: `Reset password anggota`, ...getRequestMeta(req) })
+    res.json({ success: true, message: 'Password berhasil direset menjadi 123' })
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message })
   }

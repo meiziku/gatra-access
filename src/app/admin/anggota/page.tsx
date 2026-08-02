@@ -642,7 +642,27 @@ export default function DataAnggotaPage() {
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
               <button onClick={() => setResettingMember(null)} className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">Batal</button>
-              <button onClick={() => setResettingMember(null)} className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-md shadow-amber-500/20">Ya, Reset</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`http://localhost:4000/api/anggota/${resettingMember.id}/reset-password`, {
+                      method: 'POST',
+                      credentials: 'include'
+                    });
+                    if (res.ok) {
+                      alert('Password berhasil direset menjadi 123');
+                    } else {
+                      const err = await res.json();
+                      alert('Gagal: ' + err.message);
+                    }
+                  } catch (e) {
+                    alert('Terjadi kesalahan koneksi');
+                  }
+                  setResettingMember(null);
+                }} 
+                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-md shadow-amber-500/20">
+                  Ya, Reset
+              </button>
             </div>
           </div>
         </div>

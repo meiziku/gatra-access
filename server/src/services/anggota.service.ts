@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { anggota, userProfiles } from '../db/schema'
+import { anggota, userProfiles, user, account } from '../db/schema'
 import { eq, ilike, and, count, desc } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -52,12 +52,53 @@ export async function getAnggotaById(id: string) {
   return row ?? null
 }
 
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+
 export async function createAnggota(input: CreateAnggotaInput, createdBy: string) {
-  const [row] = await db
-    .insert(anggota)
-    .values({ ...input, createdBy })
-    .returning()
-  return row
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(anggota)
+      .values({ ...input, createdBy })
+      .returning()
+      
+    const dummyEmail = `${input.nomorAnggota}@gatra.local`
+    const defaultPassword = '123'
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+    const userId = crypto.randomUUID()
+    
+    // 1. Create better-auth user
+    await tx.insert(user).values({
+      id: userId,
+      name: input.nama,
+      email: dummyEmail,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    
+    // 2. Create better-auth account
+    await tx.insert(account).values({
+      id: crypto.randomUUID(),
+      accountId: dummyEmail,
+      providerId: 'credential',
+      userId: userId,
+      password: hashedPassword,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    
+    // 3. Create userProfile mapped to this anggota
+    await tx.insert(userProfiles).values({
+      userId: userId,
+      role: 'anggota',
+      namaLengkap: input.nama,
+      anggotaId: row.id,
+      isActive: true,
+    })
+    
+    return row
+  })
 }
 
 export async function updateAnggota(id: string, input: UpdateAnggotaInput) {
@@ -86,4 +127,24 @@ export async function setAnggotaPhoto(id: string, fotoUrl: string) {
     .where(eq(anggota.id, id))
     .returning()
   return row ?? null
+}
+
+export async function resetAnggotaPassword(anggotaId: string) {
+  const profile = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.anggotaId, anggotaId)
+  })
+  if (!profile || !profile.userId) {
+    throw new Error('Akun pengguna tidak ditemukan untuk anggota ini')
+  }
+  
+  const defaultPassword = '123'
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+  
+  const [updatedAccount] = await db
+    .update(account)
+    .set({ password: hashedPassword, updatedAt: new Date() })
+    .where(eq(account.userId, profile.userId))
+    .returning()
+    
+  return updatedAccount ?? null
 }

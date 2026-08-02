@@ -77,9 +77,6 @@ export function Sidebar({ isOpen, onClose, currentRole, setCurrentRole }: Sideba
     if (currentRole === "Ketua" || currentRole === "Sekretaris") {
       return item.name !== "Transaksi SP" && item.name !== "Transaksi Umum";
     }
-    if (currentRole === "Bendahara") {
-      return item.name !== "Transaksi SP";
-    }
     if (currentRole === "Pengelola SP") {
       return item.name !== "Transaksi Umum";
     }

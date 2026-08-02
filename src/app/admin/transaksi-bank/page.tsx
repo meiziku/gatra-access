@@ -16,9 +16,12 @@ import {
   X,
   ChevronDown,
   ArrowRightLeft,
+  CheckCircle,
+  XCircle,
   Building2,
   BookOpen
 } from "lucide-react";
+import NeracaBadge from "@/components/NeracaBadge";
 import { useAnggota } from "@/context/AnggotaContext";
 
 // Helper untuk format tanggal hari ini DD/MM/YYYY
@@ -287,7 +290,8 @@ export default function TransaksiBankPage() {
     
     const mutasiParts = mutasiDateStr.split("/");
     const ddmmyy = mutasiParts.length === 3 ? `${mutasiParts[0].padStart(2, "0")}${mutasiParts[1].padStart(2, "0")}${mutasiParts[2].slice(-2)}` : "";
-    const index = (transactions.length + 1).toString().padStart(2, "0");
+    const mutasiToday = transactions.filter(t => t.isMutasi && t.date === mutasiDateStr).length;
+    const index = (mutasiToday + 1).toString().padStart(2, "0");
     
     let description = "Mutasi Kas";
     let debit = 0;
@@ -321,7 +325,8 @@ export default function TransaksiBankPage() {
       isMutasi: true,
       mutasiDari: mutasiDariKas,
       mutasiKe: mutasiKeKas,
-      nominalMutasi: nominal
+      nominalMutasi: nominal,
+      mutasiStatus: 'pending'
     };
     
     setTransactions(prev => [...prev, newTx]);
@@ -368,12 +373,31 @@ export default function TransaksiBankPage() {
 
   let bankTransactions = transactions.filter(t => {
     if (t.id.startsWith("BNK-")) return true;
-    if (t.id.startsWith("MTS-") && (t.mutasiDari === "bank" || t.mutasiKe === "bank")) return true;
+    if (t.id.startsWith("MTS-") && (t.mutasiDari === "bank" || t.mutasiKe === "bank")) {
+      if (t.mutasiStatus === 'rejected' && t.mutasiKe === "bank") return false;
+      return true;
+    }
     return false;
+  }).map(t => {
+    if (t.isMutasi) {
+      const labels: Record<string, string> = { "kas_sp": "Kas SP", "kas_toko": "Kas Toko", "kas_umum": "Kas Umum", "bank": "Bank" };
+      let debit = 0;
+      let kredit = 0;
+      let description = t.description;
+      if (t.mutasiKe === "bank") {
+        debit = t.nominalMutasi;
+        description = `Mutasi Masuk dari ${labels[t.mutasiDari] || t.mutasiDari}`;
+      } else if (t.mutasiDari === "bank") {
+        kredit = t.nominalMutasi;
+        description = `Mutasi Keluar ke ${labels[t.mutasiKe] || t.mutasiKe}`;
+      }
+      return { ...t, debit, kredit, description };
+    }
+    return t;
   });
 
   bankTransactions.forEach(t => {
-    let net = t.debit - t.kredit;
+    let net = (t.isMutasi && (t.mutasiStatus === 'pending' || t.mutasiStatus === 'rejected')) ? 0 : (t.debit - t.kredit);
     saldoAkhir += net;
     
     if (t.date.endsWith(currentMonthStr)) {
@@ -385,7 +409,7 @@ export default function TransaksiBankPage() {
   // Generate filtered transactions with saldo
   let currentSaldo = 0;
   let txsWithSaldo = bankTransactions.map((t) => {
-    let net = t.debit - t.kredit;
+    let net = (t.isMutasi && (t.mutasiStatus === 'pending' || t.mutasiStatus === 'rejected')) ? 0 : (t.debit - t.kredit);
     currentSaldo += net;
     return { ...t, saldo: currentSaldo };
   });
@@ -500,17 +524,20 @@ export default function TransaksiBankPage() {
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
         
         {/* Search */}
-        <div className="relative w-full md:max-w-xs">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
+        <div className="flex flex-1 items-center gap-4">
+          <div className="relative w-full md:max-w-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+              placeholder="Cari referensi atau keterangan..."
+            />
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-            placeholder="Cari referensi atau keterangan..."
-          />
+          <NeracaBadge />
         </div>
 
         {/* Date Filters */}
@@ -572,6 +599,12 @@ export default function TransaksiBankPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       <div>
                         <span className="font-semibold text-gray-800">{t.description}</span>
+                        {t.isMutasi && t.mutasiStatus === 'pending' && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Menunggu Persetujuan</span>
+                        )}
+                        {t.isMutasi && t.mutasiStatus === 'rejected' && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Ditolak</span>
+                        )}
                         {t.member && t.member !== "Bank" && (
                           <div className="text-xs text-gray-400 mt-0.5">{t.member}</div>
                         )}
@@ -588,20 +621,33 @@ export default function TransaksiBankPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleEditTransaction(t.id)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Nominal"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTransaction(t.id)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {t.isMutasi && t.mutasiStatus === 'pending' && t.mutasiKe === "bank" ? (
+                           <>
+                             <button onClick={() => setTransactions(prev => prev.map(x => x.id === t.id ? {...x, mutasiStatus: 'approved'} : x))} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Setujui Mutasi">
+                               <CheckCircle className="w-4 h-4" />
+                             </button>
+                             <button onClick={() => setTransactions(prev => prev.map(x => x.id === t.id ? {...x, mutasiStatus: 'rejected'} : x))} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Tolak Mutasi">
+                               <XCircle className="w-4 h-4" />
+                             </button>
+                           </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => handleEditTransaction(t.id)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit Nominal"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTransaction(t.id)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus Transaksi"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -664,7 +710,7 @@ export default function TransaksiBankPage() {
                     <option value="bank">Bank</option>
                     <option value="kas_sp">Kas Simpan Pinjam</option>
                     <option value="kas_toko">Kas Toko</option>
-                    <option value="bank">Bank</option>
+                    <option value="kas_umum">Kas Umum</option>
                   </select>
                 </div>
                 <div className="pt-6">
@@ -690,7 +736,7 @@ export default function TransaksiBankPage() {
                   >
                     <option value="kas_toko">Kas Toko</option>
                     <option value="kas_sp">Kas Simpan Pinjam</option>
-                    <option value="bank">Bank</option>
+                    <option value="kas_umum">Kas Umum</option>
                     <option value="bank">Bank</option>
                   </select>
                 </div>
