@@ -33,6 +33,10 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    'https://gatrateknika.my.id',
+    'https://www.gatrateknika.my.id',
+    'https://gatra-web-rouge.vercel.app',
+    'http://localhost:3000',
   ],
 })
 

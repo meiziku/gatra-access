@@ -94239,7 +94239,11 @@ var auth = betterAuth({
     // refresh daily
   },
   trustedOrigins: [
-    process.env.FRONTEND_URL ?? "http://localhost:3000"
+    process.env.FRONTEND_URL ?? "http://localhost:3000",
+    "https://gatrateknika.my.id",
+    "https://www.gatrateknika.my.id",
+    "https://gatra-web-rouge.vercel.app",
+    "http://localhost:3000"
   ]
 });
 
@@ -95788,7 +95792,9 @@ app.use(helmet());
 app.use((0, import_morgan.default)("dev"));
 app.use(
   (0, import_cors.default)({
-    origin: process.env.FRONTEND_URL ?? "http://localhost:3000",
+    origin: (origin, callback) => {
+      callback(null, origin || true);
+    },
     credentials: true
   })
 );

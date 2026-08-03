@@ -26,7 +26,10 @@ app.use(morgan('dev'))
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl) or any allowed domain
+      callback(null, origin || true)
+    },
     credentials: true,
   })
 )
