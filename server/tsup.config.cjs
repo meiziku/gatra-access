@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup'
+const { defineConfig } = require('tsup')
 
-export default defineConfig({
+module.exports = defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs'],
   outDir: 'api',
