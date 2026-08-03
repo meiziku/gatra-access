@@ -52306,12 +52306,12 @@ var require_lib4 = __commonJS({
   }
 });
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  default: () => index_default
+// src/server.ts
+var server_exports = {};
+__export(server_exports, {
+  default: () => server_default
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(server_exports);
 init_cjs_shims();
 
 // node_modules/dotenv/config.js
@@ -52326,7 +52326,7 @@ init_cjs_shims();
   );
 })();
 
-// src/index.ts
+// src/server.ts
 var import_express9 = __toESM(require_express2());
 
 // node_modules/helmet/index.mjs
@@ -52897,7 +52897,7 @@ var helmet = Object.assign(
   }
 );
 
-// src/index.ts
+// src/server.ts
 var import_morgan = __toESM(require_morgan());
 
 // src/lib/auth.ts
@@ -95503,7 +95503,7 @@ router9.get("/activity", requireAuth, requireRole("super_admin", "ketua"), async
 });
 var dashboard_routes_default = router9;
 
-// src/index.ts
+// src/server.ts
 var app = (0, import_express9.default)();
 var PORT = process.env.PORT ?? 4e3;
 app.use(helmet());
@@ -95552,7 +95552,7 @@ if (!process.env.VERCEL) {
     console.log(`\u{1F680} Server running on http://localhost:${PORT}`);
   });
 }
-var index_default = app;
+var server_default = app;
 /*! Bundled license information:
 
 depd/index.js:

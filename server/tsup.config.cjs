@@ -1,7 +1,9 @@
 const { defineConfig } = require('tsup')
 
 module.exports = defineConfig({
-  entry: ['src/index.ts'],
+  entry: {
+    index: 'src/server.ts'
+  },
   format: ['cjs'],
   outDir: 'api',
   clean: true,
