@@ -67,7 +67,8 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   })
 })
 
-if (process.env.NODE_ENV !== 'production' || process.env.RENDER) {
+// Only run listen() if not on Vercel
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`)
   })
