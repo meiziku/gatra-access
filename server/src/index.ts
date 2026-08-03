@@ -24,15 +24,19 @@ app.use(helmet())
 app.use(morgan('dev'))
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl) or any allowed domain
-      callback(null, origin || true)
-    },
-    credentials: true,
-  })
-)
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  res.setHeader('Access-Control-Allow-Origin', origin || '*')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,Content-Type,Accept,Authorization,Cookie')
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+  next()
+})
 
 // ─── Better-Auth handler (handles /api/auth/*) ────────────────────────────────
 app.all('/api/auth/*splat', toNodeHandler(auth))
