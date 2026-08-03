@@ -48,7 +48,11 @@ app.use('/api/shu', shuRoutes)
 app.use('/api/notifikasi', notifikasiRoutes)
 app.use('/api/pengaturan', pengaturanRoutes)
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// ─── Health Check & Root ───────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', message: 'Koperasi Gatra API is running' })
+})
+
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
