@@ -67,11 +67,24 @@ app.get('/health', (_req, res) => {
 })
 
 app.get('/health/db', async (_req, res) => {
+  const { Pool } = require('pg') as typeof import('pg')
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   try {
-    const result = await db.execute(sql`SELECT 1 as ok`)
-    res.json({ status: 'ok', db: 'connected', result: result.rows })
+    const client = await pool.connect()
+    const result = await client.query('SELECT 1 as ok')
+    client.release()
+    await pool.end()
+    res.json({ status: 'ok', db: 'connected', result: result.rows, dbUrl: process.env.DATABASE_URL ? 'set (' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NOT SET' })
   } catch (err: any) {
-    res.status(500).json({ status: 'error', db: 'failed', message: err.message, code: err.code })
+    await pool.end().catch(() => {})
+    res.status(500).json({ 
+      status: 'error', 
+      db: 'failed', 
+      message: err.message, 
+      code: err.code,
+      cause: err.cause?.message,
+      dbUrl: process.env.DATABASE_URL ? 'set (' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NOT SET'
+    })
   }
 })
 

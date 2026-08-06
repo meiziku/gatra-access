@@ -95538,11 +95538,25 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", version: "v3-db-diag", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
 });
 app.get("/health/db", async (_req, res) => {
+  const { Pool: Pool3 } = require_lib4();
+  const pool2 = new Pool3({ connectionString: process.env.DATABASE_URL });
   try {
-    const result = await db.execute(sql2`SELECT 1 as ok`);
-    res.json({ status: "ok", db: "connected", result: result.rows });
+    const client = await pool2.connect();
+    const result = await client.query("SELECT 1 as ok");
+    client.release();
+    await pool2.end();
+    res.json({ status: "ok", db: "connected", result: result.rows, dbUrl: process.env.DATABASE_URL ? "set (" + process.env.DATABASE_URL.substring(0, 30) + "...)" : "NOT SET" });
   } catch (err) {
-    res.status(500).json({ status: "error", db: "failed", message: err.message, code: err.code });
+    await pool2.end().catch(() => {
+    });
+    res.status(500).json({
+      status: "error",
+      db: "failed",
+      message: err.message,
+      code: err.code,
+      cause: err.cause?.message,
+      dbUrl: process.env.DATABASE_URL ? "set (" + process.env.DATABASE_URL.substring(0, 30) + "...)" : "NOT SET"
+    });
   }
 });
 app.use((_req, res) => {
