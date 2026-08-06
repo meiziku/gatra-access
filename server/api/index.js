@@ -95520,7 +95520,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.all("/api/auth/*splat", toNodeHandler2(auth));
+app.all("/api/auth/*", toNodeHandler2(auth));
 app.use(import_express9.default.json());
 app.use(import_express9.default.urlencoded({ extended: true }));
 app.use("/api/dashboard", dashboard_routes_default);

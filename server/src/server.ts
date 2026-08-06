@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 })
 
 // ─── Better-Auth handler (handles /api/auth/*) ────────────────────────────────
-app.all('/api/auth/*splat', toNodeHandler(auth))
+app.all('/api/auth/*', toNodeHandler(auth))
 
 // ─── Body Parsing (after auth handler) ───────────────────────────────────────
 app.use(express.json())
