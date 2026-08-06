@@ -5,6 +5,8 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import { auth } from './lib/auth'
 import { toNodeHandler } from 'better-auth/node'
+import { db } from './db'
+import { sql } from 'drizzle-orm'
 
 // Routes
 import anggotaRoutes from './routes/anggota.routes'
@@ -61,7 +63,16 @@ app.get('/', (_req, res) => {
 })
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', version: 'v2-auth-fix', timestamp: new Date().toISOString() })
+  res.json({ status: 'ok', version: 'v3-db-diag', timestamp: new Date().toISOString() })
+})
+
+app.get('/health/db', async (_req, res) => {
+  try {
+    const result = await db.execute(sql`SELECT 1 as ok`)
+    res.json({ status: 'ok', db: 'connected', result: result.rows })
+  } catch (err: any) {
+    res.status(500).json({ status: 'error', db: 'failed', message: err.message, code: err.code })
+  }
 })
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────

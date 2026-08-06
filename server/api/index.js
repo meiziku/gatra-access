@@ -95535,7 +95535,15 @@ app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Koperasi Gatra API is running" });
 });
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "v2-auth-fix", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  res.json({ status: "ok", version: "v3-db-diag", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+});
+app.get("/health/db", async (_req, res) => {
+  try {
+    const result = await db.execute(sql2`SELECT 1 as ok`);
+    res.json({ status: "ok", db: "connected", result: result.rows });
+  } catch (err) {
+    res.status(500).json({ status: "error", db: "failed", message: err.message, code: err.code });
+  }
 });
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
