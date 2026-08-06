@@ -95535,7 +95535,7 @@ app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Koperasi Gatra API is running" });
 });
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
+  res.json({ status: "ok", version: "v2-auth-fix", timestamp: (/* @__PURE__ */ new Date()).toISOString() });
 });
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

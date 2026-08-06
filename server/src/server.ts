@@ -61,7 +61,7 @@ app.get('/', (_req, res) => {
 })
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  res.json({ status: 'ok', version: 'v2-auth-fix', timestamp: new Date().toISOString() })
 })
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
