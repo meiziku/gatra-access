@@ -19,7 +19,7 @@ export default function Home() {
     setError("");
     setIsSubmitting(true);
     
-    const email = `${username}@gatra.local`;
+    const email = username.includes("@") ? username : `${username}@gatra.local`;
     
     await signIn.email({
       email,

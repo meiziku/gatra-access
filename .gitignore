@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# server node_modules & dist
+server/node_modules/
+server/dist/
+
+# temporary scratch scripts
+fix_*.js
+patch_*.js
+test_*.js
+update_*.js
+rewrite_*.js
+final_fix.js
+

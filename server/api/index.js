@@ -92199,7 +92199,8 @@ var notifikasi = pgTable("notifikasi", {
 
 // src/db/index.ts
 var pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes("supabase") || process.env.DATABASE_URL?.includes("sslmode=require") ? { rejectUnauthorized: false } : void 0
 });
 var db = drizzle(pool, { schema: schema_exports });
 
@@ -93960,6 +93961,8 @@ var auth = betterAuth({
     process.env.FRONTEND_URL ?? "http://localhost:3000",
     "https://gatrateknika.my.id",
     "https://www.gatrateknika.my.id",
+    "http://gatrateknika.my.id",
+    "http://www.gatrateknika.my.id",
     "https://gatra-web-rouge.vercel.app",
     "http://localhost:3000"
   ]
