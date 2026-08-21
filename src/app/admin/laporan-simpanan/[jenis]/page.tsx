@@ -3,6 +3,7 @@
 import { use, useState, useEffect, useRef } from "react";
 import { Wallet, Search, Filter, Download, Landmark, PiggyBank, Briefcase, GraduationCap, PartyPopper, Plus, X, ArrowUpDown } from "lucide-react";
 import { useAnggota } from "@/context/AnggotaContext";
+import { generateSimpananPDF } from "@/lib/export-pdf";
 
 export default function LaporanSimpananPage({ params }: { params: Promise<{ jenis: string }> }) {
   const resolvedParams = use(params);
@@ -350,6 +351,10 @@ export default function LaporanSimpananPage({ params }: { params: Promise<{ jeni
           <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/20 font-medium text-sm">
             <Download className="w-4 h-4" />
             Export Excel
+          </button>
+          <button onClick={() => generateSimpananPDF({ jenisNama: jenisTitle, selectedYear, rows: filteredDataForTable })} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm">
+            <Download className="w-4 h-4" />
+            Download PDF
           </button>
           {(resolvedParams.jenis === 'pendidikan' || resolvedParams.jenis === 'hari-raya') && (
             <button 

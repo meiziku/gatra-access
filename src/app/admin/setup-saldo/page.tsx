@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAnggota } from "@/context/AnggotaContext";
+import { downloadSaldoAwalTemplate } from "@/lib/export-excel";
 
 export default function SetupSaldoPage() {
   const { coaNeraca, saldoAwalKoperasi, setSaldoAwalKoperasi, members, setTransactions } = useAnggota();
@@ -130,7 +131,7 @@ export default function SetupSaldoPage() {
                   </div>
                 </div>
 
-                <button className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+                <button onClick={downloadSaldoAwalTemplate} className="w-full flex justify-center items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
                   <Download className="w-4 h-4" />
                   Unduh Template Excel
                 </button>

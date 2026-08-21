@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useNeraca } from "@/hooks/useNeraca";
 import NeracaBadge from "@/components/NeracaBadge";
+import { generateNeracaPDF } from "@/lib/export-pdf";
 
 // Struktur COA Laba Rugi dari Pengaturan
 const PENDAPATAN_COA = [
@@ -113,7 +114,27 @@ const DUMMY_EKUITAS: Record<string, number> = {};
             </select>
           </div>
 
-          <button onClick={() => window.print()} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
+          <button onClick={() => generateNeracaPDF({
+            selectedYear,
+            totalAset,
+            totalPasiva,
+            asetLancarData,
+            asetTetapData,
+            kewajibanLancarData,
+            danaData,
+            ekuitasData,
+            totalAsetLancar,
+            totalAsetTetap,
+            totalKewajibanLancar,
+            totalDana,
+            totalKewajiban,
+            totalEkuitas,
+            ASET_LANCAR_COA,
+            ASET_TETAP_COA,
+            KEWAJIBAN_LANCAR_COA,
+            DANA_COA,
+            EKUITAS_COA
+          })} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
             <Download className="w-4 h-4" />
             Download PDF
           </button>

@@ -1,6 +1,7 @@
 import { db } from '../db'
 import { pengaturanKoperasi } from '../db/schema'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 export const pengaturanSchema = z.object({
   namaKoperasi: z.string().optional(),
@@ -39,16 +40,15 @@ export async function upsertPengaturan(input: PengaturanInput, updatedBy: string
   const existing = await getPengaturan()
 
   if (existing) {
-    const [row] = await db
+    await db
       .update(pengaturanKoperasi)
       .set({ ...input, updatedBy, updatedAt: new Date() })
-      .returning()
-    return row
+    return getPengaturan()
   }
 
-  const [row] = await db
+  const id = crypto.randomUUID()
+  await db
     .insert(pengaturanKoperasi)
-    .values({ ...input, updatedBy })
-    .returning()
-  return row
+    .values({ id, ...input, updatedBy })
+  return getPengaturan()
 }

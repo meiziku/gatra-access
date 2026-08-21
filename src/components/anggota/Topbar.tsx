@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, ChevronDown, User, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 
 interface TopbarProps {
   onOpenSidebar: () => void;
@@ -69,9 +70,12 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
             </Link>
             <div className="h-px bg-gray-100 my-1"></div>
             <button 
-              onClick={() => {
+              onClick={async () => {
                 setIsProfileOpen(false);
-                router.push('/login');
+                try {
+                  await signOut();
+                } catch (e) {}
+                router.push('/');
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
             >

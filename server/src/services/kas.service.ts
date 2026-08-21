@@ -2,6 +2,7 @@ import { db } from '../db'
 import { transaksiKas, mutasiKas, setupSaldo } from '../db/schema'
 import { eq, and, sum, gte, lte, desc, count } from 'drizzle-orm'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 export const transaksiKasSchema = z.object({
   bukuKas: z.enum(['kas_sp', 'kas_umum', 'kas_toko', 'bank']),
@@ -71,30 +72,35 @@ export async function createTransaksiKas(input: TransaksiKasInput, petugasId: st
     ? saldoSekarang + input.nominal
     : saldoSekarang - input.nominal
 
-  const [row] = await db
+  const id = crypto.randomUUID()
+
+  await db
     .insert(transaksiKas)
     .values({
+      id,
       ...input,
       nominal: String(input.nominal),
       saldo: String(saldo),
       noReferensi: `TRX-${Date.now()}`,
       petugasId,
     })
-    .returning()
 
+  const [row] = await db.select().from(transaksiKas).where(eq(transaksiKas.id, id)).limit(1)
   return row
 }
 
 export async function createMutasiKas(input: MutasiKasInput, petugasId: string) {
-  const [row] = await db
+  const id = crypto.randomUUID()
+  await db
     .insert(mutasiKas)
     .values({
+      id,
       ...input,
       nominal: String(input.nominal),
       noReferensi: `MUT-${Date.now()}`,
       petugasId,
     })
-    .returning()
+  const [row] = await db.select().from(mutasiKas).where(eq(mutasiKas.id, id)).limit(1)
   return row
 }
 
@@ -136,17 +142,18 @@ export async function setupSaldoAwal(bukuKas: 'kas_sp' | 'kas_umum' | 'kas_toko'
   const [existing] = await db.select().from(setupSaldo).where(eq(setupSaldo.bukuKas, bukuKas)).limit(1)
 
   if (existing) {
-    const [row] = await db
+    await db
       .update(setupSaldo)
       .set({ saldoAwal: String(saldoAwal), tanggal, setBy, updatedAt: new Date() })
       .where(eq(setupSaldo.bukuKas, bukuKas))
-      .returning()
+    const [row] = await db.select().from(setupSaldo).where(eq(setupSaldo.bukuKas, bukuKas)).limit(1)
     return row
   } else {
-    const [row] = await db
+    const id = crypto.randomUUID()
+    await db
       .insert(setupSaldo)
-      .values({ bukuKas, saldoAwal: String(saldoAwal), tanggal, setBy })
-      .returning()
+      .values({ id, bukuKas, saldoAwal: String(saldoAwal), tanggal, setBy })
+    const [row] = await db.select().from(setupSaldo).where(eq(setupSaldo.id, id)).limit(1)
     return row
   }
 }

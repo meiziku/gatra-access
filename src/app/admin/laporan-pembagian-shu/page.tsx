@@ -8,6 +8,7 @@ import {
   FileText
 } from "lucide-react";
 import { useAnggota } from "@/context/AnggotaContext";
+import { generatePembagianShuPDF } from "@/lib/export-pdf";
 
 const PENDAPATAN_COA = [
   "Pendapatan Bunga Pinjaman",
@@ -140,7 +141,13 @@ export default function LaporanPembagianSHUPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-          <button onClick={() => window.print()} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
+          <button onClick={() => generatePembagianShuPDF({
+            selectedYear,
+            shuList: [],
+            totalShuKoperasi: baseShu,
+            totalJasaSimpanan: (baseShu * 25) / 100,
+            totalJasaSp: (baseShu * 50) / 100,
+          })} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
             <Download className="w-4 h-4" />
             Download PDF
           </button>

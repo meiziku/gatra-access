@@ -2,6 +2,7 @@ import { db } from '../db'
 import { shuConfig, shuPembagian, angsuran, simpanan, anggota } from '../db/schema'
 import { eq, and, sum, gte, lte } from 'drizzle-orm'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 export const shuConfigSchema = z.object({
   tahun: z.number().int().min(2000).max(2100),
@@ -41,12 +42,13 @@ export async function upsertShuConfig(input: ShuConfigInput) {
   }
 
   if (existing) {
-    const [row] = await db.update(shuConfig).set(values).where(eq(shuConfig.tahun, input.tahun)).returning()
-    return row
+    await db.update(shuConfig).set(values).where(eq(shuConfig.tahun, input.tahun))
+    return getShuConfig(input.tahun)
   }
 
-  const [row] = await db.insert(shuConfig).values(values).returning()
-  return row
+  const id = crypto.randomUUID()
+  await db.insert(shuConfig).values({ id, ...values })
+  return getShuConfig(input.tahun)
 }
 
 /** Calculate SHU for all members for a given year */
@@ -109,10 +111,11 @@ export async function simpanShu(tahun: number, totalShuKoperasi: number) {
 
   if (calculations.length === 0) return []
 
-  const rows = await db
+  await db
     .insert(shuPembagian)
     .values(
       calculations.map((c) => ({
+        id: crypto.randomUUID(),
         ...c,
         totalShuAnggota: String(c.totalShuAnggota),
         porsiJasaSimpanan: String(c.porsiJasaSimpanan),
@@ -120,9 +123,8 @@ export async function simpanShu(tahun: number, totalShuKoperasi: number) {
         totalDiterima: String(c.totalDiterima),
       }))
     )
-    .returning()
 
-  return rows
+  return getShuPembagian(tahun)
 }
 
 export async function getShuPembagian(tahun: number) {

@@ -1,53 +1,67 @@
-import { pgTable, text, uuid, boolean, timestamp, date, varchar, numeric, integer, pgEnum } from 'drizzle-orm/pg-core'
+import { mysqlTable, text, varchar, boolean, timestamp, date, decimal, int, mysqlEnum } from 'drizzle-orm/mysql-core'
+import crypto from 'crypto'
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
-export const userRoleEnum = pgEnum('user_role', [
-  'super_admin', 'ketua', 'sekretaris', 'bendahara',
-  'pengelola_sp', 'pengelola_toko', 'anggota'
-])
+export const userRoleValues = ['super_admin', 'ketua', 'sekretaris', 'bendahara', 'pengelola_sp', 'pengelola_toko', 'anggota'] as const
+export const anggotaStatusValues = ['aktif', 'nonaktif', 'keluar'] as const
+export const simpananStatusValues = ['pending', 'approved', 'rejected'] as const
+export const simpananTargetStatusValues = ['aktif', 'selesai', 'batal'] as const
+export const simpananTipeValues = ['setoran', 'penarikan'] as const
+export const jadwalAngsuranStatusValues = ['belum_bayar', 'sebagian', 'lunas', 'terlambat'] as const
+export const jenisBungaValues = ['flat', 'anuitas', 'efektif'] as const
+export const pinjamanStatusValues = ['pengajuan', 'disetujui', 'ditolak', 'cair', 'lunas', 'macet'] as const
+export const akunLaporanValues = ['neraca', 'laba_rugi', 'keduanya'] as const
+export const akunTipeValues = ['aset_lancar', 'aset_tetap', 'kewajiban_lancar', 'dana', 'ekuitas', 'pendapatan', 'pengeluaran'] as const
+export const bukuKasValues = ['kas_sp', 'kas_umum', 'kas_toko', 'bank'] as const
+export const transaksiTipeValues = ['pemasukan', 'pengeluaran', 'mutasi'] as const
+export const rumusShuValues = ['angsuran_total', 'angsuran_bunga', 'angsuran_pokok'] as const
+export const shuPembagianStatusValues = ['dihitung', 'dibagikan'] as const
+export const notifikasiTipeValues = ['info', 'warning', 'success', 'error'] as const
 
-export const anggotaStatusEnum = pgEnum('anggota_status', ['aktif', 'nonaktif', 'keluar'])
-export const simpananStatusEnum = pgEnum('simpanan_status', ['pending', 'approved', 'rejected'])
-export const simpananTargetStatusEnum = pgEnum('simpanan_target_status', ['aktif', 'selesai', 'batal'])
-export const simpananTipeEnum = pgEnum('simpanan_tipe', ['setoran', 'penarikan'])
-export const jadwalAngsuranStatusEnum = pgEnum('jadwal_angsuran_status', ['belum_bayar', 'sebagian', 'lunas', 'terlambat'])
-export const jenisBungaEnum = pgEnum('jenis_bunga', ['flat', 'anuitas', 'efektif'])
-export const pinjamanStatusEnum = pgEnum('pinjaman_status', ['pengajuan', 'disetujui', 'ditolak', 'cair', 'lunas', 'macet'])
-export const akunLaporanEnum = pgEnum('akun_laporan', ['neraca', 'laba_rugi', 'keduanya'])
-export const akunTipeEnum = pgEnum('akun_tipe', ['aset_lancar', 'aset_tetap', 'kewajiban_lancar', 'dana', 'ekuitas', 'pendapatan', 'pengeluaran'])
-export const bukuKasEnum = pgEnum('buku_kas', ['kas_sp', 'kas_umum', 'kas_toko', 'bank'])
-export const transaksiTipeEnum = pgEnum('transaksi_tipe', ['pemasukan', 'pengeluaran', 'mutasi'])
-export const rumusShuEnum = pgEnum('rumus_shu', ['angsuran_total', 'angsuran_bunga', 'angsuran_pokok'])
-export const shuPembagianStatusEnum = pgEnum('shu_pembagian_status', ['dihitung', 'dibagikan'])
-export const notifkasiTipeEnum = pgEnum('notifikasi_tipe', ['info', 'warning', 'success', 'error'])
+// Legacy enum exports for type compat if needed
+export const userRoleEnum = (name: string) => mysqlEnum(name, userRoleValues)
+export const anggotaStatusEnum = (name: string) => mysqlEnum(name, anggotaStatusValues)
+export const simpananStatusEnum = (name: string) => mysqlEnum(name, simpananStatusValues)
+export const simpananTargetStatusEnum = (name: string) => mysqlEnum(name, simpananTargetStatusValues)
+export const simpananTipeEnum = (name: string) => mysqlEnum(name, simpananTipeValues)
+export const jadwalAngsuranStatusEnum = (name: string) => mysqlEnum(name, jadwalAngsuranStatusValues)
+export const jenisBungaEnum = (name: string) => mysqlEnum(name, jenisBungaValues)
+export const pinjamanStatusEnum = (name: string) => mysqlEnum(name, pinjamanStatusValues)
+export const akunLaporanEnum = (name: string) => mysqlEnum(name, akunLaporanValues)
+export const akunTipeEnum = (name: string) => mysqlEnum(name, akunTipeValues)
+export const bukuKasEnum = (name: string) => mysqlEnum(name, bukuKasValues)
+export const transaksiTipeEnum = (name: string) => mysqlEnum(name, transaksiTipeValues)
+export const rumusShuEnum = (name: string) => mysqlEnum(name, rumusShuValues)
+export const shuPembagianStatusEnum = (name: string) => mysqlEnum(name, shuPembagianStatusValues)
+export const notifkasiTipeEnum = (name: string) => mysqlEnum(name, notifikasiTipeValues)
 
 // ─── Better-Auth Tables ───────────────────────────────────────────────────────
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
+export const user = mysqlTable('user', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   name: text('name').notNull(),
-  email: text('email').notNull().unique(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
+export const session = mysqlTable('session', {
+  id: varchar('id', { length: 255 }).primaryKey(),
   expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
+  token: varchar('token', { length: 255 }).notNull().unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => user.id, { onDelete: 'cascade' }),
 })
 
-export const account = pgTable('account', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+export const account = mysqlTable('account', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  accountId: varchar('account_id', { length: 255 }).notNull(),
+  providerId: varchar('provider_id', { length: 255 }).notNull(),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => user.id, { onDelete: 'cascade' }),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   idToken: text('id_token'),
@@ -59,9 +73,9 @@ export const account = pgTable('account', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
+export const verification = mysqlTable('verification', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  identifier: varchar('identifier', { length: 255 }).notNull(),
   value: text('value').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
@@ -69,20 +83,20 @@ export const verification = pgTable('verification', {
 })
 
 // ─── User Profiles (extends Better-Auth user) ────────────────────────────────
-export const userProfiles = pgTable('user_profiles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
-  role: userRoleEnum('role').notNull().default('anggota'),
+export const userProfiles = mysqlTable('user_profiles', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar('user_id', { length: 255 }).notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
+  role: mysqlEnum('role', userRoleValues).notNull().default('anggota'),
   namaLengkap: text('nama_lengkap'),
-  anggotaId: uuid('anggota_id'),
+  anggotaId: varchar('anggota_id', { length: 36 }),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
 // ─── Anggota ─────────────────────────────────────────────────────────────────
-export const anggota = pgTable('anggota', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const anggota = mysqlTable('anggota', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   nomorAnggota: varchar('nomor_anggota', { length: 20 }).notNull().unique(),
   nik: varchar('nik', { length: 16 }).unique(),
   nama: text('nama').notNull(),
@@ -93,208 +107,208 @@ export const anggota = pgTable('anggota', {
   ktpUrl: text('ktp_url'),
   tanggalMasuk: date('tanggal_masuk').notNull(),
   tanggalKeluar: date('tanggal_keluar'),
-  status: anggotaStatusEnum('status').notNull().default('aktif'),
+  status: mysqlEnum('status', anggotaStatusValues).notNull().default('aktif'),
   pekerjaan: text('pekerjaan'),
   unitKerja: text('unit_kerja'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  createdBy: varchar('created_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
 })
 
 // ─── Simpanan ─────────────────────────────────────────────────────────────────
-export const jenisSimpanan = pgTable('jenis_simpanan', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const jenisSimpanan = mysqlTable('jenis_simpanan', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   kode: varchar('kode', { length: 20 }).notNull().unique(),
   nama: text('nama').notNull(),
-  jasaPersen: numeric('jasa_persen', { precision: 5, scale: 2 }).notNull().default('0'),
+  jasaPersen: decimal('jasa_persen', { precision: 5, scale: 2 }).notNull().default('0'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const simpanan = pgTable('simpanan', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  anggotaId: uuid('anggota_id').notNull().references(() => anggota.id, { onDelete: 'restrict' }),
-  jenisSimpananId: uuid('jenis_simpanan_id').notNull().references(() => jenisSimpanan.id, { onDelete: 'restrict' }),
+export const simpanan = mysqlTable('simpanan', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  anggotaId: varchar('anggota_id', { length: 36 }).notNull().references(() => anggota.id, { onDelete: 'restrict' }),
+  jenisSimpananId: varchar('jenis_simpanan_id', { length: 36 }).notNull().references(() => jenisSimpanan.id, { onDelete: 'restrict' }),
   tanggal: date('tanggal').notNull(),
-  nominal: numeric('nominal', { precision: 15, scale: 2 }).notNull(),
-  tipe: simpananTipeEnum('tipe').notNull(),
+  nominal: decimal('nominal', { precision: 15, scale: 2 }).notNull(),
+  tipe: mysqlEnum('tipe', simpananTipeValues).notNull(),
   keterangan: text('keterangan'),
-  petugasId: text('petugas_id').references(() => user.id, { onDelete: 'set null' }),
+  petugasId: varchar('petugas_id', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   noReferensi: varchar('no_referensi', { length: 30 }).unique(),
-  status: simpananStatusEnum('status').notNull().default('approved'),
-  approvedBy: text('approved_by').references(() => user.id, { onDelete: 'set null' }),
+  status: mysqlEnum('status', simpananStatusValues).notNull().default('approved'),
+  approvedBy: varchar('approved_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   approvedAt: timestamp('approved_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const simpananTarget = pgTable('simpanan_target', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  anggotaId: uuid('anggota_id').notNull().references(() => anggota.id, { onDelete: 'restrict' }),
-  jenisSimpananId: uuid('jenis_simpanan_id').notNull().references(() => jenisSimpanan.id, { onDelete: 'restrict' }),
-  targetNominal: numeric('target_nominal', { precision: 15, scale: 2 }).notNull(),
-  angsuranPerBulan: numeric('angsuran_per_bulan', { precision: 15, scale: 2 }).notNull(),
-  tenorBulan: integer('tenor_bulan').notNull(),
+export const simpananTarget = mysqlTable('simpanan_target', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  anggotaId: varchar('anggota_id', { length: 36 }).notNull().references(() => anggota.id, { onDelete: 'restrict' }),
+  jenisSimpananId: varchar('jenis_simpanan_id', { length: 36 }).notNull().references(() => jenisSimpanan.id, { onDelete: 'restrict' }),
+  targetNominal: decimal('target_nominal', { precision: 15, scale: 2 }).notNull(),
+  angsuranPerBulan: decimal('angsuran_per_bulan', { precision: 15, scale: 2 }).notNull(),
+  tenorBulan: int('tenor_bulan').notNull(),
   tglMulai: date('tgl_mulai').notNull(),
   tglSelesai: date('tgl_selesai'),
-  status: simpananTargetStatusEnum('status').notNull().default('aktif'),
+  status: mysqlEnum('status', simpananTargetStatusValues).notNull().default('aktif'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  createdBy: varchar('created_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
 })
 
 // ─── Pinjaman ─────────────────────────────────────────────────────────────────
-export const pinjaman = pgTable('pinjaman', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const pinjaman = mysqlTable('pinjaman', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   noKontrak: varchar('no_kontrak', { length: 30 }).notNull().unique(),
-  anggotaId: uuid('anggota_id').notNull().references(() => anggota.id, { onDelete: 'restrict' }),
+  anggotaId: varchar('anggota_id', { length: 36 }).notNull().references(() => anggota.id, { onDelete: 'restrict' }),
   tanggalPengajuan: date('tanggal_pengajuan').notNull(),
   tanggalCair: date('tanggal_cair'),
-  jumlah: numeric('jumlah', { precision: 15, scale: 2 }).notNull(),
-  tenorBulan: integer('tenor_bulan').notNull(),
-  bungaPersen: numeric('bunga_persen', { precision: 5, scale: 2 }).notNull(),
-  jenisBunga: jenisBungaEnum('jenis_bunga').notNull().default('flat'),
-  totalBunga: numeric('total_bunga', { precision: 15, scale: 2 }),
-  totalAngsuran: numeric('total_angsuran', { precision: 15, scale: 2 }),
+  jumlah: decimal('jumlah', { precision: 15, scale: 2 }).notNull(),
+  tenorBulan: int('tenor_bulan').notNull(),
+  bungaPersen: decimal('bunga_persen', { precision: 5, scale: 2 }).notNull(),
+  jenisBunga: mysqlEnum('jenis_bunga', jenisBungaValues).notNull().default('flat'),
+  totalBunga: decimal('total_bunga', { precision: 15, scale: 2 }),
+  totalAngsuran: decimal('total_angsuran', { precision: 15, scale: 2 }),
   jatuhTempo: date('jatuh_tempo'),
-  asuransiPersen: numeric('asuransi_persen', { precision: 5, scale: 2 }).notNull().default('0'),
-  biayaAsuransi: numeric('biaya_asuransi', { precision: 15, scale: 2 }).notNull().default('0'),
+  asuransiPersen: decimal('asuransi_persen', { precision: 5, scale: 2 }).notNull().default('0'),
+  biayaAsuransi: decimal('biaya_asuransi', { precision: 15, scale: 2 }).notNull().default('0'),
   tujuan: text('tujuan'),
   dokumenUrl: text('dokumen_url'),
-  status: pinjamanStatusEnum('status').notNull().default('pengajuan'),
-  approvedBy: text('approved_by').references(() => user.id, { onDelete: 'set null' }),
+  status: mysqlEnum('status', pinjamanStatusValues).notNull().default('pengajuan'),
+  approvedBy: varchar('approved_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   approvedAt: timestamp('approved_at'),
   catatan: text('catatan'),
-  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  createdBy: varchar('created_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-export const jadwalAngsuran = pgTable('jadwal_angsuran', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  pinjamanId: uuid('pinjaman_id').notNull().references(() => pinjaman.id, { onDelete: 'cascade' }),
-  ke: integer('ke').notNull(),
+export const jadwalAngsuran = mysqlTable('jadwal_angsuran', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pinjamanId: varchar('pinjaman_id', { length: 36 }).notNull().references(() => pinjaman.id, { onDelete: 'cascade' }),
+  ke: int('ke').notNull(),
   tglJatuhTempo: date('tgl_jatuh_tempo').notNull(),
-  pokok: numeric('pokok', { precision: 15, scale: 2 }).notNull(),
-  bunga: numeric('bunga', { precision: 15, scale: 2 }).notNull(),
-  total: numeric('total', { precision: 15, scale: 2 }).notNull(),
-  denda: numeric('denda', { precision: 15, scale: 2 }).notNull().default('0'),
-  sisaPokok: numeric('sisa_pokok', { precision: 15, scale: 2 }).notNull(),
-  status: jadwalAngsuranStatusEnum('status').notNull().default('belum_bayar'),
+  pokok: decimal('pokok', { precision: 15, scale: 2 }).notNull(),
+  bunga: decimal('bunga', { precision: 15, scale: 2 }).notNull(),
+  total: decimal('total', { precision: 15, scale: 2 }).notNull(),
+  denda: decimal('denda', { precision: 15, scale: 2 }).notNull().default('0'),
+  sisaPokok: decimal('sisa_pokok', { precision: 15, scale: 2 }).notNull(),
+  status: mysqlEnum('status', jadwalAngsuranStatusValues).notNull().default('belum_bayar'),
 })
 
-export const angsuran = pgTable('angsuran', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  pinjamanId: uuid('pinjaman_id').notNull().references(() => pinjaman.id, { onDelete: 'restrict' }),
-  jadwalAngsuranId: uuid('jadwal_angsuran_id').references(() => jadwalAngsuran.id, { onDelete: 'set null' }),
-  anggotaId: uuid('anggota_id').notNull().references(() => anggota.id, { onDelete: 'restrict' }),
+export const angsuran = mysqlTable('angsuran', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pinjamanId: varchar('pinjaman_id', { length: 36 }).notNull().references(() => pinjaman.id, { onDelete: 'restrict' }),
+  jadwalAngsuranId: varchar('jadwal_angsuran_id', { length: 36 }).references(() => jadwalAngsuran.id, { onDelete: 'set null' }),
+  anggotaId: varchar('anggota_id', { length: 36 }).notNull().references(() => anggota.id, { onDelete: 'restrict' }),
   tanggal: date('tanggal').notNull(),
-  pokok: numeric('pokok', { precision: 15, scale: 2 }).notNull(),
-  bunga: numeric('bunga', { precision: 15, scale: 2 }).notNull().default('0'),
-  denda: numeric('denda', { precision: 15, scale: 2 }).notNull().default('0'),
-  totalBayar: numeric('total_bayar', { precision: 15, scale: 2 }).notNull(),
-  sisaPinjaman: numeric('sisa_pinjaman', { precision: 15, scale: 2 }).notNull(),
+  pokok: decimal('pokok', { precision: 15, scale: 2 }).notNull(),
+  bunga: decimal('bunga', { precision: 15, scale: 2 }).notNull().default('0'),
+  denda: decimal('denda', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalBayar: decimal('total_bayar', { precision: 15, scale: 2 }).notNull(),
+  sisaPinjaman: decimal('sisa_pinjaman', { precision: 15, scale: 2 }).notNull(),
   noReferensi: varchar('no_referensi', { length: 30 }).unique(),
   keterangan: text('keterangan'),
-  petugasId: text('petugas_id').references(() => user.id, { onDelete: 'set null' }),
+  petugasId: varchar('petugas_id', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
 // ─── Kas & Akuntansi ─────────────────────────────────────────────────────────
-export const akun = pgTable('akun', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  kode: text('kode').unique(),
+export const akun = mysqlTable('akun', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  kode: varchar('kode', { length: 50 }).unique(),
   nama: text('nama').notNull(),
-  tipe: akunTipeEnum('tipe').notNull(),
-  laporan: akunLaporanEnum('laporan').notNull(),
-  urutan: integer('urutan').notNull().default(0),
+  tipe: mysqlEnum('tipe', akunTipeValues).notNull(),
+  laporan: mysqlEnum('laporan', akunLaporanValues).notNull(),
+  urutan: int('urutan').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const transaksiKas = pgTable('transaksi_kas', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  bukuKas: bukuKasEnum('buku_kas').notNull(),
+export const transaksiKas = mysqlTable('transaksi_kas', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bukuKas: mysqlEnum('buku_kas', bukuKasValues).notNull(),
   tanggal: date('tanggal').notNull(),
   noReferensi: varchar('no_referensi', { length: 30 }).unique(),
-  akunId: uuid('akun_id').references(() => akun.id, { onDelete: 'set null' }),
-  tipe: transaksiTipeEnum('tipe').notNull(),
-  nominal: numeric('nominal', { precision: 15, scale: 2 }).notNull(),
-  saldo: numeric('saldo', { precision: 15, scale: 2 }).notNull(),
+  akunId: varchar('akun_id', { length: 36 }).references(() => akun.id, { onDelete: 'set null' }),
+  tipe: mysqlEnum('tipe', transaksiTipeValues).notNull(),
+  nominal: decimal('nominal', { precision: 15, scale: 2 }).notNull(),
+  saldo: decimal('saldo', { precision: 15, scale: 2 }).notNull(),
   keterangan: text('keterangan'),
   refType: varchar('ref_type', { length: 50 }),
-  refId: uuid('ref_id'),
-  anggotaId: uuid('anggota_id').references(() => anggota.id, { onDelete: 'set null' }),
-  petugasId: text('petugas_id').references(() => user.id, { onDelete: 'set null' }),
+  refId: varchar('ref_id', { length: 36 }),
+  anggotaId: varchar('anggota_id', { length: 36 }).references(() => anggota.id, { onDelete: 'set null' }),
+  petugasId: varchar('petugas_id', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const mutasiKas = pgTable('mutasi_kas', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const mutasiKas = mysqlTable('mutasi_kas', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   tanggal: date('tanggal').notNull(),
-  dariKas: bukuKasEnum('dari_kas').notNull(),
-  keKas: bukuKasEnum('ke_kas').notNull(),
-  nominal: numeric('nominal', { precision: 15, scale: 2 }).notNull(),
+  dariKas: mysqlEnum('dari_kas', bukuKasValues).notNull(),
+  keKas: mysqlEnum('ke_kas', bukuKasValues).notNull(),
+  nominal: decimal('nominal', { precision: 15, scale: 2 }).notNull(),
   noReferensi: varchar('no_referensi', { length: 30 }).unique(),
   keterangan: text('keterangan'),
-  petugasId: text('petugas_id').references(() => user.id, { onDelete: 'set null' }),
+  petugasId: varchar('petugas_id', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const setupSaldo = pgTable('setup_saldo', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  bukuKas: bukuKasEnum('buku_kas').notNull().unique(),
-  saldoAwal: numeric('saldo_awal', { precision: 15, scale: 2 }).notNull().default('0'),
+export const setupSaldo = mysqlTable('setup_saldo', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bukuKas: mysqlEnum('buku_kas', bukuKasValues).notNull().unique(),
+  saldoAwal: decimal('saldo_awal', { precision: 15, scale: 2 }).notNull().default('0'),
   tanggal: date('tanggal').notNull(),
   keterangan: text('keterangan'),
-  setBy: text('set_by').references(() => user.id, { onDelete: 'set null' }),
+  setBy: varchar('set_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
 // ─── SHU ─────────────────────────────────────────────────────────────────────
-export const shuConfig = pgTable('shu_config', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tahun: integer('tahun').notNull().unique(),
-  persenJasaSimpanan: numeric('persen_jasa_simpanan', { precision: 5, scale: 2 }).notNull().default('25'),
-  persenJasaSp: numeric('persen_jasa_sp', { precision: 5, scale: 2 }).notNull().default('50'),
-  persenPemdaker: numeric('persen_pemdaker', { precision: 5, scale: 2 }).notNull().default('2.5'),
-  persenPengurus: numeric('persen_pengurus', { precision: 5, scale: 2 }).notNull().default('5'),
-  persenKesejahteraan: numeric('persen_kesejahteraan', { precision: 5, scale: 2 }).notNull().default('2.5'),
-  persenPendidikan: numeric('persen_pendidikan', { precision: 5, scale: 2 }).notNull().default('2.5'),
-  persenSosial: numeric('persen_sosial', { precision: 5, scale: 2 }).notNull().default('2.5'),
-  persenCadangan: numeric('persen_cadangan', { precision: 5, scale: 2 }).notNull().default('10'),
-  rumusShu: rumusShuEnum('rumus_shu').notNull().default('angsuran_total'),
-  jasaManasukaPersen: numeric('jasa_manasuka_persen', { precision: 5, scale: 2 }).notNull().default('10'),
+export const shuConfig = mysqlTable('shu_config', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  tahun: int('tahun').notNull().unique(),
+  persenJasaSimpanan: decimal('persen_jasa_simpanan', { precision: 5, scale: 2 }).notNull().default('25'),
+  persenJasaSp: decimal('persen_jasa_sp', { precision: 5, scale: 2 }).notNull().default('50'),
+  persenPemdaker: decimal('persen_pemdaker', { precision: 5, scale: 2 }).notNull().default('2.5'),
+  persenPengurus: decimal('persen_pengurus', { precision: 5, scale: 2 }).notNull().default('5'),
+  persenKesejahteraan: decimal('persen_kesejahteraan', { precision: 5, scale: 2 }).notNull().default('2.5'),
+  persenPendidikan: decimal('persen_pendidikan', { precision: 5, scale: 2 }).notNull().default('2.5'),
+  persenSosial: decimal('persen_sosial', { precision: 5, scale: 2 }).notNull().default('2.5'),
+  persenCadangan: decimal('persen_cadangan', { precision: 5, scale: 2 }).notNull().default('10'),
+  rumusShu: mysqlEnum('rumus_shu', rumusShuValues).notNull().default('angsuran_total'),
+  jasaManasukaPersen: decimal('jasa_manasuka_persen', { precision: 5, scale: 2 }).notNull().default('10'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-export const shuPembagian = pgTable('shu_pembagian', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  tahun: integer('tahun').notNull(),
-  anggotaId: uuid('anggota_id').notNull().references(() => anggota.id, { onDelete: 'restrict' }),
-  shuConfigId: uuid('shu_config_id').references(() => shuConfig.id, { onDelete: 'set null' }),
-  totalShuAnggota: numeric('total_shu_anggota', { precision: 15, scale: 2 }).notNull(),
-  porsiJasaSimpanan: numeric('porsi_jasa_simpanan', { precision: 15, scale: 2 }).notNull().default('0'),
-  porsiJasaSp: numeric('porsi_jasa_sp', { precision: 15, scale: 2 }).notNull().default('0'),
-  totalDiterima: numeric('total_diterima', { precision: 15, scale: 2 }).notNull(),
+export const shuPembagian = mysqlTable('shu_pembagian', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  tahun: int('tahun').notNull(),
+  anggotaId: varchar('anggota_id', { length: 36 }).notNull().references(() => anggota.id, { onDelete: 'restrict' }),
+  shuConfigId: varchar('shu_config_id', { length: 36 }).references(() => shuConfig.id, { onDelete: 'set null' }),
+  totalShuAnggota: decimal('total_shu_anggota', { precision: 15, scale: 2 }).notNull(),
+  porsiJasaSimpanan: decimal('porsi_jasa_simpanan', { precision: 15, scale: 2 }).notNull().default('0'),
+  porsiJasaSp: decimal('porsi_jasa_sp', { precision: 15, scale: 2 }).notNull().default('0'),
+  totalDiterima: decimal('total_diterima', { precision: 15, scale: 2 }).notNull(),
   tanggalPembagian: date('tanggal_pembagian'),
-  status: shuPembagianStatusEnum('status').notNull().default('dihitung'),
+  status: mysqlEnum('status', shuPembagianStatusValues).notNull().default('dihitung'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
 // ─── Config & Utilities ───────────────────────────────────────────────────────
-export const asuransiConfig = pgTable('asuransi_config', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const asuransiConfig = mysqlTable('asuransi_config', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   nama: text('nama').notNull(),
-  persen: numeric('persen', { precision: 5, scale: 2 }).notNull(),
-  minPinjaman: numeric('min_pinjaman', { precision: 15, scale: 2 }),
-  maxPinjaman: numeric('max_pinjaman', { precision: 15, scale: 2 }),
+  persen: decimal('persen', { precision: 5, scale: 2 }).notNull(),
+  minPinjaman: decimal('min_pinjaman', { precision: 15, scale: 2 }),
+  maxPinjaman: decimal('max_pinjaman', { precision: 15, scale: 2 }),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const pengaturanKoperasi = pgTable('pengaturan_koperasi', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const pengaturanKoperasi = mysqlTable('pengaturan_koperasi', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   namaKoperasi: text('nama_koperasi').notNull().default('Koperasi Gatra'),
   email: text('email'),
   noTelp: text('no_telp'),
@@ -309,7 +323,7 @@ export const pengaturanKoperasi = pgTable('pengaturan_koperasi', {
   pengawas1: text('pengawas_1'),
   pengawas2: text('pengawas_2'),
   smtpHost: text('smtp_host'),
-  smtpPort: integer('smtp_port'),
+  smtpPort: int('smtp_port'),
   smtpUser: text('smtp_user'),
   smtpPass: text('smtp_pass'),
   smtpFrom: text('smtp_from'),
@@ -319,29 +333,29 @@ export const pengaturanKoperasi = pgTable('pengaturan_koperasi', {
   namaBank: text('nama_bank'),
   atasNama: text('atas_nama'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  updatedBy: text('updated_by').references(() => user.id, { onDelete: 'set null' }),
+  updatedBy: varchar('updated_by', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
 })
 
-export const activityLog = pgTable('activity_log', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+export const activityLog = mysqlTable('activity_log', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar('user_id', { length: 255 }).references(() => user.id, { onDelete: 'set null' }),
   action: varchar('action', { length: 100 }).notNull(),
   module: varchar('module', { length: 50 }).notNull(),
-  refId: uuid('ref_id'),
+  refId: varchar('ref_id', { length: 36 }),
   description: text('description'),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
-export const notifikasi = pgTable('notifikasi', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+export const notifikasi = mysqlTable('notifikasi', {
+  id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar('user_id', { length: 255 }).notNull().references(() => user.id, { onDelete: 'cascade' }),
   judul: text('judul').notNull(),
   pesan: text('pesan').notNull(),
-  tipe: notifkasiTipeEnum('tipe').notNull().default('info'),
+  tipe: mysqlEnum('tipe', notifikasiTipeValues).notNull().default('info'),
   isRead: boolean('is_read').notNull().default(false),
   refType: varchar('ref_type', { length: 50 }),
-  refId: uuid('ref_id'),
+  refId: varchar('ref_id', { length: 36 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })

@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: 'mysql',
     schema: {
       user: schema.user,
       session: schema.session,

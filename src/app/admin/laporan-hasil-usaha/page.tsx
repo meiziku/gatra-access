@@ -10,6 +10,7 @@ import {
   Printer
 } from "lucide-react";
 import { useAnggota } from "@/context/AnggotaContext";
+import { generateLabaRugiPDF } from "@/lib/export-pdf";
 
 // Struktur COA Laba Rugi dari Pengaturan
 const PENDAPATAN_COA = [
@@ -164,7 +165,19 @@ export default function LaporanHasilUsahaPage() {
               <option value="2024">Tahun 2024</option>
             </select>
           </div>
-          <button onClick={() => window.print()} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
+          <button onClick={() => generateLabaRugiPDF({
+            selectedYear,
+            totalPendapatan: totalPendapatanSetahun,
+            totalPengeluaran: totalPengeluaranSetahun,
+            shuKotor: labaBersihSetahun,
+            persenPajak: 0,
+            nominalPajak: 0,
+            shuBersih: labaBersihSetahun,
+            pendapatanData: Object.fromEntries(PENDAPATAN_COA.map(c => [c, getRowTotal(DUMMY_PENDAPATAN[c] || [])])),
+            pengeluaranData: Object.fromEntries(PENGELUARAN_COA.map(c => [c, getRowTotal(DUMMY_PENGELUARAN[c] || [])])),
+            PENDAPATAN_COA,
+            PENGELUARAN_COA,
+          })} className="flex-1 xl:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm print:hidden">
             <Download className="w-4 h-4" />
             Download PDF
           </button>

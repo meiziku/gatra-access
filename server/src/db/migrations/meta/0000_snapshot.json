@@ -1,92 +1,104 @@
 {
-  "id": "4fb91e07-1702-4610-9d1b-bf08dca26321",
+  "version": "5",
+  "dialect": "mysql",
+  "id": "67b0ba7a-5c1c-4c72-aa49-a8bc3affc6cf",
   "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "7",
-  "dialect": "postgresql",
   "tables": {
-    "public.account": {
+    "account": {
       "name": "account",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "account_id": {
           "name": "account_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "provider_id": {
           "name": "provider_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "access_token": {
           "name": "access_token",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "refresh_token": {
           "name": "refresh_token",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "id_token": {
           "name": "id_token",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "access_token_expires_at": {
           "name": "access_token_expires_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "refresh_token_expires_at": {
           "name": "refresh_token_expires_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "scope": {
           "name": "scope",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "password": {
           "name": "password",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
@@ -105,72 +117,90 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "account_id": {
+          "name": "account_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.session": {
-      "name": "session",
-      "schema": "",
+    "activity_log": {
+      "name": "activity_log",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
-        "token": {
-          "name": "token",
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "module": {
+          "name": "module",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ref_id": {
+          "name": "ref_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "session_user_id_user_id_fk": {
-          "name": "session_user_id_user_id_fk",
-          "tableFrom": "session",
+        "activity_log_user_id_user_id_fk": {
+          "name": "activity_log_user_id_user_id_fk",
+          "tableFrom": "activity_log",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -178,66 +208,73 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "session_token_unique": {
-          "name": "session_token_unique",
-          "nullsNotDistinct": false,
+      "compositePrimaryKeys": {
+        "activity_log_id": {
+          "name": "activity_log_id",
           "columns": [
-            "token"
+            "id"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     },
-    "public.user_profiles": {
-      "name": "user_profiles",
-      "schema": "",
+    "akun": {
+      "name": "akun",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role": {
-          "name": "role",
-          "type": "user_role",
-          "typeSchema": "public",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'anggota'"
+          "autoincrement": false
         },
-        "nama_lengkap": {
-          "name": "nama_lengkap",
+        "kode": {
+          "name": "kode",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nama": {
+          "name": "nama",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
         },
-        "anggota_id": {
-          "name": "anggota_id",
-          "type": "uuid",
+        "tipe": {
+          "name": "tipe",
+          "type": "enum('aset_lancar','aset_tetap','kewajiban_lancar','dana','ekuitas','pendapatan','pengeluaran')",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
+        },
+        "laporan": {
+          "name": "laporan",
+          "type": "enum('neraca','laba_rugi','keduanya')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "urutan": {
+          "name": "urutan",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": true
         },
         "created_at": {
@@ -245,273 +282,154 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "user_profiles_user_id_user_id_fk": {
-          "name": "user_profiles_user_id_user_id_fk",
-          "tableFrom": "user_profiles",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "akun_id": {
+          "name": "akun_id",
+          "columns": [
             "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "user_profiles_user_id_unique": {
-          "name": "user_profiles_user_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.user": {
-      "name": "user",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email_verified": {
-          "name": "email_verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "user_email_unique": {
-          "name": "user_email_unique",
-          "nullsNotDistinct": false,
+        "akun_kode_unique": {
+          "name": "akun_kode_unique",
           "columns": [
-            "email"
+            "kode"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.verification": {
-      "name": "verification",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "identifier": {
-          "name": "identifier",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.anggota": {
+    "anggota": {
       "name": "anggota",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false
         },
         "nomor_anggota": {
           "name": "nomor_anggota",
           "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "nik": {
           "name": "nik",
           "type": "varchar(16)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "nama": {
           "name": "nama",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "alamat": {
           "name": "alamat",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "email": {
           "name": "email",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "no_hp": {
           "name": "no_hp",
           "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "foto_url": {
           "name": "foto_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "ktp_url": {
           "name": "ktp_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "tanggal_masuk": {
           "name": "tanggal_masuk",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "tanggal_keluar": {
           "name": "tanggal_keluar",
           "type": "date",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "status": {
           "name": "status",
-          "type": "anggota_status",
-          "typeSchema": "public",
+          "type": "enum('aktif','nonaktif','keluar')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'aktif'"
         },
         "pekerjaan": {
           "name": "pekerjaan",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "unit_kerja": {
           "name": "unit_kerja",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         },
         "created_by": {
           "name": "created_by",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -530,459 +448,133 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "anggota_id": {
+          "name": "anggota_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "anggota_nomor_anggota_unique": {
           "name": "anggota_nomor_anggota_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "nomor_anggota"
           ]
         },
         "anggota_nik_unique": {
           "name": "anggota_nik_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "nik"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.jenis_simpanan": {
-      "name": "jenis_simpanan",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "kode": {
-          "name": "kode",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nama": {
-          "name": "nama",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "jasa_persen": {
-          "name": "jasa_persen",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "jenis_simpanan_kode_unique": {
-          "name": "jenis_simpanan_kode_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "kode"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.simpanan": {
-      "name": "simpanan",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "anggota_id": {
-          "name": "anggota_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "jenis_simpanan_id": {
-          "name": "jenis_simpanan_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tanggal": {
-          "name": "tanggal",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nominal": {
-          "name": "nominal",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tipe": {
-          "name": "tipe",
-          "type": "simpanan_tipe",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "keterangan": {
-          "name": "keterangan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "petugas_id": {
-          "name": "petugas_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "no_referensi": {
-          "name": "no_referensi",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "simpanan_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'approved'"
-        },
-        "approved_by": {
-          "name": "approved_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "approved_at": {
-          "name": "approved_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "simpanan_anggota_id_anggota_id_fk": {
-          "name": "simpanan_anggota_id_anggota_id_fk",
-          "tableFrom": "simpanan",
-          "tableTo": "anggota",
-          "columnsFrom": [
-            "anggota_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "simpanan_jenis_simpanan_id_jenis_simpanan_id_fk": {
-          "name": "simpanan_jenis_simpanan_id_jenis_simpanan_id_fk",
-          "tableFrom": "simpanan",
-          "tableTo": "jenis_simpanan",
-          "columnsFrom": [
-            "jenis_simpanan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "simpanan_petugas_id_user_id_fk": {
-          "name": "simpanan_petugas_id_user_id_fk",
-          "tableFrom": "simpanan",
-          "tableTo": "user",
-          "columnsFrom": [
-            "petugas_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "simpanan_approved_by_user_id_fk": {
-          "name": "simpanan_approved_by_user_id_fk",
-          "tableFrom": "simpanan",
-          "tableTo": "user",
-          "columnsFrom": [
-            "approved_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "simpanan_no_referensi_unique": {
-          "name": "simpanan_no_referensi_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "no_referensi"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.simpanan_target": {
-      "name": "simpanan_target",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "anggota_id": {
-          "name": "anggota_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "jenis_simpanan_id": {
-          "name": "jenis_simpanan_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_nominal": {
-          "name": "target_nominal",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "angsuran_per_bulan": {
-          "name": "angsuran_per_bulan",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenor_bulan": {
-          "name": "tenor_bulan",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tgl_mulai": {
-          "name": "tgl_mulai",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tgl_selesai": {
-          "name": "tgl_selesai",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "simpanan_target_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'aktif'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "simpanan_target_anggota_id_anggota_id_fk": {
-          "name": "simpanan_target_anggota_id_anggota_id_fk",
-          "tableFrom": "simpanan_target",
-          "tableTo": "anggota",
-          "columnsFrom": [
-            "anggota_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "simpanan_target_jenis_simpanan_id_jenis_simpanan_id_fk": {
-          "name": "simpanan_target_jenis_simpanan_id_jenis_simpanan_id_fk",
-          "tableFrom": "simpanan_target",
-          "tableTo": "jenis_simpanan",
-          "columnsFrom": [
-            "jenis_simpanan_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "simpanan_target_created_by_user_id_fk": {
-          "name": "simpanan_target_created_by_user_id_fk",
-          "tableFrom": "simpanan_target",
-          "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.angsuran": {
+    "angsuran": {
       "name": "angsuran",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false
         },
         "pinjaman_id": {
           "name": "pinjaman_id",
-          "type": "uuid",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "jadwal_angsuran_id": {
           "name": "jadwal_angsuran_id",
-          "type": "uuid",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "anggota_id": {
           "name": "anggota_id",
-          "type": "uuid",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "tanggal": {
           "name": "tanggal",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "pokok": {
           "name": "pokok",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "bunga": {
           "name": "bunga",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'0'"
         },
         "denda": {
           "name": "denda",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'0'"
         },
         "total_bayar": {
           "name": "total_bayar",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "sisa_pinjaman": {
           "name": "sisa_pinjaman",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "no_referensi": {
           "name": "no_referensi",
           "type": "varchar(30)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "keterangan": {
           "name": "keterangan",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "petugas_id": {
           "name": "petugas_id",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
@@ -1040,86 +632,165 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "angsuran_id": {
+          "name": "angsuran_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "angsuran_no_referensi_unique": {
           "name": "angsuran_no_referensi_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "no_referensi"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.jadwal_angsuran": {
-      "name": "jadwal_angsuran",
-      "schema": "",
+    "asuransi_config": {
+      "name": "asuransi_config",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "persen": {
+          "name": "persen",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "min_pinjaman": {
+          "name": "min_pinjaman",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "max_pinjaman": {
+          "name": "max_pinjaman",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "asuransi_config_id": {
+          "name": "asuransi_config_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "jadwal_angsuran": {
+      "name": "jadwal_angsuran",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "pinjaman_id": {
           "name": "pinjaman_id",
-          "type": "uuid",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "ke": {
           "name": "ke",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "tgl_jatuh_tempo": {
           "name": "tgl_jatuh_tempo",
           "type": "date",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "pokok": {
           "name": "pokok",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "bunga": {
           "name": "bunga",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "total": {
           "name": "total",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "denda": {
           "name": "denda",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'0'"
         },
         "sisa_pokok": {
           "name": "sisa_pokok",
-          "type": "numeric(15, 2)",
+          "type": "decimal(15,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "status": {
           "name": "status",
-          "type": "jadwal_angsuran_status",
-          "typeSchema": "public",
+          "type": "enum('belum_bayar','sebagian','lunas','terlambat')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'belum_bayar'"
         }
       },
@@ -1139,162 +810,669 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "jadwal_angsuran_id": {
+          "name": "jadwal_angsuran_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.pinjaman": {
-      "name": "pinjaman",
-      "schema": "",
+    "jenis_simpanan": {
+      "name": "jenis_simpanan",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "no_kontrak": {
-          "name": "no_kontrak",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "anggota_id": {
-          "name": "anggota_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tanggal_pengajuan": {
-          "name": "tanggal_pengajuan",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tanggal_cair": {
-          "name": "tanggal_cair",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "jumlah": {
-          "name": "jumlah",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenor_bulan": {
-          "name": "tenor_bulan",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "bunga_persen": {
-          "name": "bunga_persen",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "jenis_bunga": {
-          "name": "jenis_bunga",
-          "type": "jenis_bunga",
-          "typeSchema": "public",
+          "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'flat'"
+          "autoincrement": false
         },
-        "total_bunga": {
-          "name": "total_bunga",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total_angsuran": {
-          "name": "total_angsuran",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "jatuh_tempo": {
-          "name": "jatuh_tempo",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "asuransi_persen": {
-          "name": "asuransi_persen",
-          "type": "numeric(5, 2)",
+        "kode": {
+          "name": "kode",
+          "type": "varchar(20)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jasa_persen": {
+          "name": "jasa_persen",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
           "default": "'0'"
         },
-        "biaya_asuransi": {
-          "name": "biaya_asuransi",
-          "type": "numeric(15, 2)",
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'0'"
-        },
-        "tujuan": {
-          "name": "tujuan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "dokumen_url": {
-          "name": "dokumen_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "pinjaman_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pengajuan'"
-        },
-        "approved_by": {
-          "name": "approved_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "approved_at": {
-          "name": "approved_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "catatan": {
-          "name": "catatan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "autoincrement": false,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "jenis_simpanan_id": {
+          "name": "jenis_simpanan_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "jenis_simpanan_kode_unique": {
+          "name": "jenis_simpanan_kode_unique",
+          "columns": [
+            "kode"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "mutasi_kas": {
+      "name": "mutasi_kas",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dari_kas": {
+          "name": "dari_kas",
+          "type": "enum('kas_sp','kas_umum','kas_toko','bank')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ke_kas": {
+          "name": "ke_kas",
+          "type": "enum('kas_sp','kas_umum','kas_toko','bank')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nominal": {
+          "name": "nominal",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "no_referensi": {
+          "name": "no_referensi",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "petugas_id": {
+          "name": "petugas_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mutasi_kas_petugas_id_user_id_fk": {
+          "name": "mutasi_kas_petugas_id_user_id_fk",
+          "tableFrom": "mutasi_kas",
+          "tableTo": "user",
+          "columnsFrom": [
+            "petugas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "mutasi_kas_id": {
+          "name": "mutasi_kas_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "mutasi_kas_no_referensi_unique": {
+          "name": "mutasi_kas_no_referensi_unique",
+          "columns": [
+            "no_referensi"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "notifikasi": {
+      "name": "notifikasi",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "judul": {
+          "name": "judul",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pesan": {
+          "name": "pesan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tipe": {
+          "name": "tipe",
+          "type": "enum('info','warning','success','error')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'info'"
+        },
+        "is_read": {
+          "name": "is_read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "ref_type": {
+          "name": "ref_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ref_id": {
+          "name": "ref_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notifikasi_user_id_user_id_fk": {
+          "name": "notifikasi_user_id_user_id_fk",
+          "tableFrom": "notifikasi",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "notifikasi_id": {
+          "name": "notifikasi_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "pengaturan_koperasi": {
+      "name": "pengaturan_koperasi",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nama_koperasi": {
+          "name": "nama_koperasi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "('Koperasi Gatra')"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "no_telp": {
+          "name": "no_telp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "alamat": {
+          "name": "alamat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ketua": {
+          "name": "ketua",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sekretaris": {
+          "name": "sekretaris",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bendahara": {
+          "name": "bendahara",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pengelola_sp": {
+          "name": "pengelola_sp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pengelola_toko": {
+          "name": "pengelola_toko",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ketua_pengawas": {
+          "name": "ketua_pengawas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pengawas_1": {
+          "name": "pengawas_1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pengawas_2": {
+          "name": "pengawas_2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_host": {
+          "name": "smtp_host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_port": {
+          "name": "smtp_port",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_user": {
+          "name": "smtp_user",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_pass": {
+          "name": "smtp_pass",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_from": {
+          "name": "smtp_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wa_gateway_url": {
+          "name": "wa_gateway_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "wa_api_key": {
+          "name": "wa_api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nomor_rekening": {
+          "name": "nomor_rekening",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nama_bank": {
+          "name": "nama_bank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "atas_nama": {
+          "name": "atas_nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pengaturan_koperasi_updated_by_user_id_fk": {
+          "name": "pengaturan_koperasi_updated_by_user_id_fk",
+          "tableFrom": "pengaturan_koperasi",
+          "tableTo": "user",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pengaturan_koperasi_id": {
+          "name": "pengaturan_koperasi_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "pinjaman": {
+      "name": "pinjaman",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "no_kontrak": {
+          "name": "no_kontrak",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "anggota_id": {
+          "name": "anggota_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_pengajuan": {
+          "name": "tanggal_pengajuan",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_cair": {
+          "name": "tanggal_cair",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jumlah": {
+          "name": "jumlah",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenor_bulan": {
+          "name": "tenor_bulan",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bunga_persen": {
+          "name": "bunga_persen",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jenis_bunga": {
+          "name": "jenis_bunga",
+          "type": "enum('flat','anuitas','efektif')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'flat'"
+        },
+        "total_bunga": {
+          "name": "total_bunga",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "total_angsuran": {
+          "name": "total_angsuran",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "jatuh_tempo": {
+          "name": "jatuh_tempo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "asuransi_persen": {
+          "name": "asuransi_persen",
+          "type": "decimal(5,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'0'"
+        },
+        "biaya_asuransi": {
+          "name": "biaya_asuransi",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'0'"
+        },
+        "tujuan": {
+          "name": "tujuan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dokumen_url": {
+          "name": "dokumen_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pengajuan','disetujui','ditolak','cair','lunas','macet')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pengajuan'"
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "catatan": {
+          "name": "catatan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
@@ -1339,244 +1517,181 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "pinjaman_id": {
+          "name": "pinjaman_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "pinjaman_no_kontrak_unique": {
           "name": "pinjaman_no_kontrak_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "no_kontrak"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.akun": {
-      "name": "akun",
-      "schema": "",
+    "session": {
+      "name": "session",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "kode": {
-          "name": "kode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nama": {
-          "name": "nama",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tipe": {
-          "name": "tipe",
-          "type": "akun_tipe",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "laporan": {
-          "name": "laporan",
-          "type": "akun_laporan",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "urutan": {
-          "name": "urutan",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "autoincrement": false
         },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "akun_kode_unique": {
-          "name": "akun_kode_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "kode"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.mutasi_kas": {
-      "name": "mutasi_kas",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tanggal": {
-          "name": "tanggal",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dari_kas": {
-          "name": "dari_kas",
-          "type": "buku_kas",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ke_kas": {
-          "name": "ke_kas",
-          "type": "buku_kas",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nominal": {
-          "name": "nominal",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "no_referensi": {
-          "name": "no_referensi",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "keterangan": {
-          "name": "keterangan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "petugas_id": {
-          "name": "petugas_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "mutasi_kas_petugas_id_user_id_fk": {
-          "name": "mutasi_kas_petugas_id_user_id_fk",
-          "tableFrom": "mutasi_kas",
-          "tableTo": "user",
-          "columnsFrom": [
-            "petugas_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "mutasi_kas_no_referensi_unique": {
-          "name": "mutasi_kas_no_referensi_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "no_referensi"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.setup_saldo": {
-      "name": "setup_saldo",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "buku_kas": {
-          "name": "buku_kas",
-          "type": "buku_kas",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "saldo_awal": {
-          "name": "saldo_awal",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "tanggal": {
-          "name": "tanggal",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "keterangan": {
-          "name": "keterangan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "set_by": {
-          "name": "set_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "session_id": {
+          "name": "session_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "setup_saldo": {
+      "name": "setup_saldo",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "buku_kas": {
+          "name": "buku_kas",
+          "type": "enum('kas_sp','kas_umum','kas_toko','bank')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "saldo_awal": {
+          "name": "saldo_awal",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'0'"
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "set_by": {
+          "name": "set_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
@@ -1595,111 +1710,690 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "setup_saldo_id": {
+          "name": "setup_saldo_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "setup_saldo_buku_kas_unique": {
           "name": "setup_saldo_buku_kas_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "buku_kas"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.transaksi_kas": {
-      "name": "transaksi_kas",
-      "schema": "",
+    "shu_config": {
+      "name": "shu_config",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
+          "type": "varchar(36)",
+          "primaryKey": false,
           "notNull": true,
-          "default": "gen_random_uuid()"
+          "autoincrement": false
         },
-        "buku_kas": {
-          "name": "buku_kas",
-          "type": "buku_kas",
-          "typeSchema": "public",
+        "tahun": {
+          "name": "tahun",
+          "type": "int",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
-        "tanggal": {
-          "name": "tanggal",
-          "type": "date",
+        "persen_jasa_simpanan": {
+          "name": "persen_jasa_simpanan",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'25'"
         },
-        "no_referensi": {
-          "name": "no_referensi",
-          "type": "varchar(30)",
+        "persen_jasa_sp": {
+          "name": "persen_jasa_sp",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'50'"
         },
-        "akun_id": {
-          "name": "akun_id",
-          "type": "uuid",
+        "persen_pemdaker": {
+          "name": "persen_pemdaker",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'2.5'"
         },
-        "tipe": {
-          "name": "tipe",
-          "type": "transaksi_tipe",
-          "typeSchema": "public",
+        "persen_pengurus": {
+          "name": "persen_pengurus",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'5'"
         },
-        "nominal": {
-          "name": "nominal",
-          "type": "numeric(15, 2)",
+        "persen_kesejahteraan": {
+          "name": "persen_kesejahteraan",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'2.5'"
         },
-        "saldo": {
-          "name": "saldo",
-          "type": "numeric(15, 2)",
+        "persen_pendidikan": {
+          "name": "persen_pendidikan",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'2.5'"
         },
-        "keterangan": {
-          "name": "keterangan",
-          "type": "text",
+        "persen_sosial": {
+          "name": "persen_sosial",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'2.5'"
         },
-        "ref_type": {
-          "name": "ref_type",
-          "type": "varchar(50)",
+        "persen_cadangan": {
+          "name": "persen_cadangan",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'10'"
         },
-        "ref_id": {
-          "name": "ref_id",
-          "type": "uuid",
+        "rumus_shu": {
+          "name": "rumus_shu",
+          "type": "enum('angsuran_total','angsuran_bunga','angsuran_pokok')",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'angsuran_total'"
         },
-        "anggota_id": {
-          "name": "anggota_id",
-          "type": "uuid",
+        "jasa_manasuka_persen": {
+          "name": "jasa_manasuka_persen",
+          "type": "decimal(5,2)",
           "primaryKey": false,
-          "notNull": false
-        },
-        "petugas_id": {
-          "name": "petugas_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'10'"
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "shu_config_id": {
+          "name": "shu_config_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "shu_config_tahun_unique": {
+          "name": "shu_config_tahun_unique",
+          "columns": [
+            "tahun"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "shu_pembagian": {
+      "name": "shu_pembagian",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tahun": {
+          "name": "tahun",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "anggota_id": {
+          "name": "anggota_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "shu_config_id": {
+          "name": "shu_config_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "total_shu_anggota": {
+          "name": "total_shu_anggota",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "porsi_jasa_simpanan": {
+          "name": "porsi_jasa_simpanan",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'0'"
+        },
+        "porsi_jasa_sp": {
+          "name": "porsi_jasa_sp",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'0'"
+        },
+        "total_diterima": {
+          "name": "total_diterima",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal_pembagian": {
+          "name": "tanggal_pembagian",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('dihitung','dibagikan')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'dihitung'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "shu_pembagian_anggota_id_anggota_id_fk": {
+          "name": "shu_pembagian_anggota_id_anggota_id_fk",
+          "tableFrom": "shu_pembagian",
+          "tableTo": "anggota",
+          "columnsFrom": [
+            "anggota_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "shu_pembagian_shu_config_id_shu_config_id_fk": {
+          "name": "shu_pembagian_shu_config_id_shu_config_id_fk",
+          "tableFrom": "shu_pembagian",
+          "tableTo": "shu_config",
+          "columnsFrom": [
+            "shu_config_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "shu_pembagian_id": {
+          "name": "shu_pembagian_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "simpanan": {
+      "name": "simpanan",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "anggota_id": {
+          "name": "anggota_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jenis_simpanan_id": {
+          "name": "jenis_simpanan_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nominal": {
+          "name": "nominal",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tipe": {
+          "name": "tipe",
+          "type": "enum('setoran','penarikan')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "petugas_id": {
+          "name": "petugas_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "no_referensi": {
+          "name": "no_referensi",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pending','approved','rejected')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'approved'"
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "simpanan_anggota_id_anggota_id_fk": {
+          "name": "simpanan_anggota_id_anggota_id_fk",
+          "tableFrom": "simpanan",
+          "tableTo": "anggota",
+          "columnsFrom": [
+            "anggota_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "simpanan_jenis_simpanan_id_jenis_simpanan_id_fk": {
+          "name": "simpanan_jenis_simpanan_id_jenis_simpanan_id_fk",
+          "tableFrom": "simpanan",
+          "tableTo": "jenis_simpanan",
+          "columnsFrom": [
+            "jenis_simpanan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "simpanan_petugas_id_user_id_fk": {
+          "name": "simpanan_petugas_id_user_id_fk",
+          "tableFrom": "simpanan",
+          "tableTo": "user",
+          "columnsFrom": [
+            "petugas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "simpanan_approved_by_user_id_fk": {
+          "name": "simpanan_approved_by_user_id_fk",
+          "tableFrom": "simpanan",
+          "tableTo": "user",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "simpanan_id": {
+          "name": "simpanan_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "simpanan_no_referensi_unique": {
+          "name": "simpanan_no_referensi_unique",
+          "columns": [
+            "no_referensi"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "simpanan_target": {
+      "name": "simpanan_target",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "anggota_id": {
+          "name": "anggota_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "jenis_simpanan_id": {
+          "name": "jenis_simpanan_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "target_nominal": {
+          "name": "target_nominal",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "angsuran_per_bulan": {
+          "name": "angsuran_per_bulan",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tenor_bulan": {
+          "name": "tenor_bulan",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tgl_mulai": {
+          "name": "tgl_mulai",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tgl_selesai": {
+          "name": "tgl_selesai",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('aktif','selesai','batal')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'aktif'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "simpanan_target_anggota_id_anggota_id_fk": {
+          "name": "simpanan_target_anggota_id_anggota_id_fk",
+          "tableFrom": "simpanan_target",
+          "tableTo": "anggota",
+          "columnsFrom": [
+            "anggota_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "simpanan_target_jenis_simpanan_id_jenis_simpanan_id_fk": {
+          "name": "simpanan_target_jenis_simpanan_id_jenis_simpanan_id_fk",
+          "tableFrom": "simpanan_target",
+          "tableTo": "jenis_simpanan",
+          "columnsFrom": [
+            "jenis_simpanan_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "simpanan_target_created_by_user_id_fk": {
+          "name": "simpanan_target_created_by_user_id_fk",
+          "tableFrom": "simpanan_target",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "simpanan_target_id": {
+          "name": "simpanan_target_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "transaksi_kas": {
+      "name": "transaksi_kas",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "buku_kas": {
+          "name": "buku_kas",
+          "type": "enum('kas_sp','kas_umum','kas_toko','bank')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tanggal": {
+          "name": "tanggal",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "no_referensi": {
+          "name": "no_referensi",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "akun_id": {
+          "name": "akun_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tipe": {
+          "name": "tipe",
+          "type": "enum('pemasukan','pengeluaran','mutasi')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nominal": {
+          "name": "nominal",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "saldo": {
+          "name": "saldo",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "keterangan": {
+          "name": "keterangan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ref_type": {
+          "name": "ref_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ref_id": {
+          "name": "ref_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "anggota_id": {
+          "name": "anggota_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "petugas_id": {
+          "name": "petugas_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
@@ -1744,291 +2438,145 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "transaksi_kas_id": {
+          "name": "transaksi_kas_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {
         "transaksi_kas_no_referensi_unique": {
           "name": "transaksi_kas_no_referensi_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "no_referensi"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.shu_config": {
-      "name": "shu_config",
-      "schema": "",
+    "user": {
+      "name": "user",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tahun": {
-          "name": "tahun",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "persen_jasa_simpanan": {
-          "name": "persen_jasa_simpanan",
-          "type": "numeric(5, 2)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'25'"
+          "autoincrement": false
         },
-        "persen_jasa_sp": {
-          "name": "persen_jasa_sp",
-          "type": "numeric(5, 2)",
+        "name": {
+          "name": "name",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'50'"
+          "autoincrement": false
         },
-        "persen_pemdaker": {
-          "name": "persen_pemdaker",
-          "type": "numeric(5, 2)",
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'2.5'"
+          "autoincrement": false
         },
-        "persen_pengurus": {
-          "name": "persen_pengurus",
-          "type": "numeric(5, 2)",
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'5'"
+          "autoincrement": false,
+          "default": false
         },
-        "persen_kesejahteraan": {
-          "name": "persen_kesejahteraan",
-          "type": "numeric(5, 2)",
+        "image": {
+          "name": "image",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'2.5'"
-        },
-        "persen_pendidikan": {
-          "name": "persen_pendidikan",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'2.5'"
-        },
-        "persen_sosial": {
-          "name": "persen_sosial",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'2.5'"
-        },
-        "persen_cadangan": {
-          "name": "persen_cadangan",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'10'"
-        },
-        "rumus_shu": {
-          "name": "rumus_shu",
-          "type": "rumus_shu",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'angsuran_total'"
-        },
-        "jasa_manasuka_persen": {
-          "name": "jasa_manasuka_persen",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'10'"
+          "notNull": false,
+          "autoincrement": false
         },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "shu_config_tahun_unique": {
-          "name": "shu_config_tahun_unique",
-          "nullsNotDistinct": false,
+      "compositePrimaryKeys": {
+        "user_id": {
+          "name": "user_id",
           "columns": [
-            "tahun"
+            "id"
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "checkConstraint": {}
     },
-    "public.shu_pembagian": {
-      "name": "shu_pembagian",
-      "schema": "",
+    "user_profiles": {
+      "name": "user_profiles",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tahun": {
-          "name": "tahun",
-          "type": "integer",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "enum('super_admin','ketua','sekretaris','bendahara','pengelola_sp','pengelola_toko','anggota')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'anggota'"
+        },
+        "nama_lengkap": {
+          "name": "nama_lengkap",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "anggota_id": {
           "name": "anggota_id",
-          "type": "uuid",
+          "type": "varchar(36)",
           "primaryKey": false,
-          "notNull": true
-        },
-        "shu_config_id": {
-          "name": "shu_config_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "total_shu_anggota": {
-          "name": "total_shu_anggota",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "porsi_jasa_simpanan": {
-          "name": "porsi_jasa_simpanan",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "porsi_jasa_sp": {
-          "name": "porsi_jasa_sp",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "total_diterima": {
-          "name": "total_diterima",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tanggal_pembagian": {
-          "name": "tanggal_pembagian",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "shu_pembagian_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'dihitung'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "shu_pembagian_anggota_id_anggota_id_fk": {
-          "name": "shu_pembagian_anggota_id_anggota_id_fk",
-          "tableFrom": "shu_pembagian",
-          "tableTo": "anggota",
-          "columnsFrom": [
-            "anggota_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "shu_pembagian_shu_config_id_shu_config_id_fk": {
-          "name": "shu_pembagian_shu_config_id_shu_config_id_fk",
-          "tableFrom": "shu_pembagian",
-          "tableTo": "shu_config",
-          "columnsFrom": [
-            "shu_config_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.asuransi_config": {
-      "name": "asuransi_config",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "nama": {
-          "name": "nama",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "persen": {
-          "name": "persen",
-          "type": "numeric(5, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "min_pinjaman": {
-          "name": "min_pinjaman",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "max_pinjaman": {
-          "name": "max_pinjaman",
-          "type": "numeric(15, 2)",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": true
         },
         "created_at": {
@@ -2036,355 +2584,23 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.pengaturan_koperasi": {
-      "name": "pengaturan_koperasi",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "nama_koperasi": {
-          "name": "nama_koperasi",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'Koperasi Gatra'"
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "no_telp": {
-          "name": "no_telp",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "alamat": {
-          "name": "alamat",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ketua": {
-          "name": "ketua",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sekretaris": {
-          "name": "sekretaris",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "bendahara": {
-          "name": "bendahara",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pengelola_sp": {
-          "name": "pengelola_sp",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pengelola_toko": {
-          "name": "pengelola_toko",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ketua_pengawas": {
-          "name": "ketua_pengawas",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pengawas_1": {
-          "name": "pengawas_1",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pengawas_2": {
-          "name": "pengawas_2",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "smtp_host": {
-          "name": "smtp_host",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "smtp_port": {
-          "name": "smtp_port",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "smtp_user": {
-          "name": "smtp_user",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "smtp_pass": {
-          "name": "smtp_pass",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "smtp_from": {
-          "name": "smtp_from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "wa_gateway_url": {
-          "name": "wa_gateway_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "wa_api_key": {
-          "name": "wa_api_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nomor_rekening": {
-          "name": "nomor_rekening",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nama_bank": {
-          "name": "nama_bank",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "atas_nama": {
-          "name": "atas_nama",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "autoincrement": false,
+          "default": "(now())"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "pengaturan_koperasi_updated_by_user_id_fk": {
-          "name": "pengaturan_koperasi_updated_by_user_id_fk",
-          "tableFrom": "pengaturan_koperasi",
-          "tableTo": "user",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.activity_log": {
-      "name": "activity_log",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action": {
-          "name": "action",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "module": {
-          "name": "module",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ref_id": {
-          "name": "ref_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "varchar(45)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "activity_log_user_id_user_id_fk": {
-          "name": "activity_log_user_id_user_id_fk",
-          "tableFrom": "activity_log",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.notifikasi": {
-      "name": "notifikasi",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "judul": {
-          "name": "judul",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pesan": {
-          "name": "pesan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tipe": {
-          "name": "tipe",
-          "type": "notifikasi_tipe",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'info'"
-        },
-        "is_read": {
-          "name": "is_read",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "ref_type": {
-          "name": "ref_type",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ref_id": {
-          "name": "ref_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "notifikasi_user_id_user_id_fk": {
-          "name": "notifikasi_user_id_user_id_fk",
-          "tableFrom": "notifikasi",
+        "user_profiles_user_id_user_id_fk": {
+          "name": "user_profiles_user_id_user_id_fk",
+          "tableFrom": "user_profiles",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -2396,170 +2612,94 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "user_profiles_id": {
+          "name": "user_profiles_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "user_profiles_user_id_unique": {
+          "name": "user_profiles_user_id_unique",
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "verification": {
+      "name": "verification",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "verification_id": {
+          "name": "verification_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     }
   },
-  "enums": {
-    "public.user_role": {
-      "name": "user_role",
-      "schema": "public",
-      "values": [
-        "super_admin",
-        "ketua",
-        "sekretaris",
-        "bendahara",
-        "pengelola_sp",
-        "pengelola_toko",
-        "anggota"
-      ]
-    },
-    "public.anggota_status": {
-      "name": "anggota_status",
-      "schema": "public",
-      "values": [
-        "aktif",
-        "nonaktif",
-        "keluar"
-      ]
-    },
-    "public.simpanan_status": {
-      "name": "simpanan_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
-    },
-    "public.simpanan_target_status": {
-      "name": "simpanan_target_status",
-      "schema": "public",
-      "values": [
-        "aktif",
-        "selesai",
-        "batal"
-      ]
-    },
-    "public.simpanan_tipe": {
-      "name": "simpanan_tipe",
-      "schema": "public",
-      "values": [
-        "setoran",
-        "penarikan"
-      ]
-    },
-    "public.jadwal_angsuran_status": {
-      "name": "jadwal_angsuran_status",
-      "schema": "public",
-      "values": [
-        "belum_bayar",
-        "sebagian",
-        "lunas",
-        "terlambat"
-      ]
-    },
-    "public.jenis_bunga": {
-      "name": "jenis_bunga",
-      "schema": "public",
-      "values": [
-        "flat",
-        "anuitas",
-        "efektif"
-      ]
-    },
-    "public.pinjaman_status": {
-      "name": "pinjaman_status",
-      "schema": "public",
-      "values": [
-        "pengajuan",
-        "disetujui",
-        "ditolak",
-        "cair",
-        "lunas",
-        "macet"
-      ]
-    },
-    "public.akun_laporan": {
-      "name": "akun_laporan",
-      "schema": "public",
-      "values": [
-        "neraca",
-        "laba_rugi",
-        "keduanya"
-      ]
-    },
-    "public.akun_tipe": {
-      "name": "akun_tipe",
-      "schema": "public",
-      "values": [
-        "aset_lancar",
-        "aset_tetap",
-        "kewajiban_lancar",
-        "dana",
-        "ekuitas",
-        "pendapatan",
-        "pengeluaran"
-      ]
-    },
-    "public.buku_kas": {
-      "name": "buku_kas",
-      "schema": "public",
-      "values": [
-        "kas_sp",
-        "kas_umum",
-        "kas_toko",
-        "bank"
-      ]
-    },
-    "public.transaksi_tipe": {
-      "name": "transaksi_tipe",
-      "schema": "public",
-      "values": [
-        "pemasukan",
-        "pengeluaran",
-        "mutasi"
-      ]
-    },
-    "public.rumus_shu": {
-      "name": "rumus_shu",
-      "schema": "public",
-      "values": [
-        "angsuran_total",
-        "angsuran_bunga",
-        "angsuran_pokok"
-      ]
-    },
-    "public.shu_pembagian_status": {
-      "name": "shu_pembagian_status",
-      "schema": "public",
-      "values": [
-        "dihitung",
-        "dibagikan"
-      ]
-    },
-    "public.notifikasi_tipe": {
-      "name": "notifikasi_tipe",
-      "schema": "public",
-      "values": [
-        "info",
-        "warning",
-        "success",
-        "error"
-      ]
-    }
-  },
-  "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
   "views": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
   }
 }

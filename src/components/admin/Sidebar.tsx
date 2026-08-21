@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 import { 
   LayoutDashboard, 
   Wallet, 
@@ -63,6 +64,7 @@ import { useState, useEffect } from "react";
 
 export function Sidebar({ isOpen, onClose, currentRole, setCurrentRole }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   
   const roles = ["Super Admin", "Ketua", "Sekretaris", "Bendahara", "Pengelola SP", "Pengelola Toko"];
@@ -262,7 +264,15 @@ export function Sidebar({ isOpen, onClose, currentRole, setCurrentRole }: Sideba
               </div>
             </div>
 
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-200 mt-2">
+            <button 
+              onClick={async () => {
+                try {
+                  await signOut();
+                } catch (e) {}
+                router.push('/');
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-200 mt-2"
+            >
               <LogOut className="w-5 h-5 text-red-400" />
               Keluar
             </button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Filter, Download, CreditCard, ArrowUpRight, ArrowDownRight, AlertTriangle, CheckCircle2, ChevronRight, HandCoins, X, Upload } from "lucide-react";
 import { useAnggota } from "@/context/AnggotaContext";
+import { generatePinjamanPDF } from "@/lib/export-pdf";
 
 // Mock Data
 export default function LaporanPinjamanPage() {
@@ -131,6 +132,13 @@ export default function LaporanPinjamanPage() {
           >
             <Download className="w-4 h-4" />
             Export Excel
+          </button>
+          <button 
+            onClick={() => generatePinjamanPDF({ selectedYear: "2026", rows: filteredData })}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 font-medium text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Download PDF
           </button>
         </div>
       </div>

@@ -180,14 +180,6 @@ export default function Home() {
                     </>
                   )}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push('/admin')}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/80 transition-all active:scale-[0.98]"
-                >
-                  ⚡ Masuk Langsung (Bypass Admin)
-                </button>
               </div>
             </form>
 

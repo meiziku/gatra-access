@@ -94,9 +94,11 @@ export async function getSaldoAnggota(anggotaId: string, jenisSimpananId?: strin
 }
 
 export async function createSimpanan(input: CreateSimpananInput, petugasId: string) {
-  const [row] = await db
+  const id = crypto.randomUUID()
+  await db
     .insert(simpanan)
     .values({
+      id,
       ...input,
       nominal: String(input.nominal),
       petugasId,
@@ -104,7 +106,7 @@ export async function createSimpanan(input: CreateSimpananInput, petugasId: stri
       approvedBy: petugasId,
       approvedAt: new Date(),
     })
-    .returning()
+  const [row] = await db.select().from(simpanan).where(eq(simpanan.id, id)).limit(1)
   return row
 }
 

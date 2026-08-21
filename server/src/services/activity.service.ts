@@ -1,6 +1,7 @@
 import { db } from '../db'
 import { activityLog, notifikasi } from '../db/schema'
 import { eq, desc, and, count } from 'drizzle-orm'
+import crypto from 'crypto'
 
 export async function logActivity(params: {
   userId?: string
@@ -11,7 +12,9 @@ export async function logActivity(params: {
   ipAddress?: string
   userAgent?: string
 }) {
-  const [row] = await db.insert(activityLog).values(params).returning()
+  const id = crypto.randomUUID()
+  await db.insert(activityLog).values({ id, ...params })
+  const [row] = await db.select().from(activityLog).where(eq(activityLog.id, id)).limit(1)
   return row
 }
 
@@ -39,10 +42,11 @@ export async function createNotifikasi(userId: string, params: {
   refType?: string
   refId?: string
 }) {
-  const [row] = await db
+  const id = crypto.randomUUID()
+  await db
     .insert(notifikasi)
-    .values({ userId, ...params, tipe: params.tipe ?? 'info' })
-    .returning()
+    .values({ id, userId, ...params, tipe: params.tipe ?? 'info' })
+  const [row] = await db.select().from(notifikasi).where(eq(notifikasi.id, id)).limit(1)
   return row
 }
 
@@ -60,11 +64,17 @@ export async function getNotifikasi(userId: string, onlyUnread = false) {
 }
 
 export async function markNotifikasiRead(id: string, userId: string) {
-  const [row] = await db
+  await db
     .update(notifikasi)
     .set({ isRead: true })
     .where(and(eq(notifikasi.id, id), eq(notifikasi.userId, userId)))
-    .returning()
+
+  const [row] = await db
+    .select()
+    .from(notifikasi)
+    .where(and(eq(notifikasi.id, id), eq(notifikasi.userId, userId)))
+    .limit(1)
+
   return row ?? null
 }
 

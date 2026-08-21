@@ -19,6 +19,7 @@ import Link from "next/link";
 import * as XLSX from "xlsx";
 import { useRef } from "react";
 import { useAnggota } from "@/context/AnggotaContext";
+import { downloadAnggotaTemplate, exportAnggotaExcel } from "@/lib/export-excel";
 
 export default function DataAnggotaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -165,19 +166,7 @@ export default function DataAnggotaPage() {
   };
 
   const handleExport = () => {
-    const exportData = members.map(m => ({
-      "ID Anggota": m.id,
-      "Nama Lengkap": m.name,
-      "Email": m.email,
-      "No HP": m.phone,
-      "Alamat": m.address,
-      "Pekerjaan": m.pekerjaan,
-      "Tanggal Bergabung": m.date
-    }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data Anggota");
-    XLSX.writeFile(wb, "Data_Anggota.xlsx");
+    exportAnggotaExcel(members);
     setIsExportModalOpen(false);
   };
   
@@ -493,6 +482,17 @@ export default function DataAnggotaPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center bg-blue-50/70 p-3 rounded-xl border border-blue-100">
+                <span className="text-xs text-blue-800 font-medium">Format file belum sesuai?</span>
+                <button
+                  type="button"
+                  onClick={downloadAnggotaTemplate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Unduh Template
+                </button>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Unggah File (.xlsx, .xls)</label>
                 <input type="file" ref={fileInputRef} accept=".xlsx,.xls" className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-200 rounded-xl p-2 cursor-pointer bg-gray-50" />

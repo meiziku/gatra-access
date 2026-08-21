@@ -2,6 +2,7 @@ import { db } from '../db'
 import { pinjaman, jadwalAngsuran, angsuran, anggota } from '../db/schema'
 import { eq, and, count, desc, gte, lte } from 'drizzle-orm'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 export const createPinjamanSchema = z.object({
   anggotaId: z.string().uuid(),
@@ -90,10 +91,13 @@ export async function createPinjaman(input: CreatePinjamanInput, createdBy: stri
   const jatuhTempo = new Date(tanggalCairDate)
   jatuhTempo.setMonth(jatuhTempo.getMonth() + input.tenorBulan)
 
+  const pinjamanId = crypto.randomUUID()
+
   // Insert pinjaman
-  const [pinjamanRow] = await db
+  await db
     .insert(pinjaman)
     .values({
+      id: pinjamanId,
       ...input,
       jumlah: String(input.jumlah),
       bungaPersen: String(input.bungaPersen),
@@ -106,7 +110,8 @@ export async function createPinjaman(input: CreatePinjamanInput, createdBy: stri
       status: 'pengajuan',
       createdBy,
     })
-    .returning()
+
+  const [pinjamanRow] = await db.select().from(pinjaman).where(eq(pinjaman.id, pinjamanId)).limit(1)
 
   // Insert jadwal angsuran
   const today = new Date()
@@ -115,6 +120,7 @@ export async function createPinjaman(input: CreatePinjamanInput, createdBy: stri
       const tgl = new Date(today)
       tgl.setMonth(tgl.getMonth() + j.ke)
       return {
+        id: crypto.randomUUID(),
         pinjamanId: pinjamanRow.id,
         ke: j.ke,
         tglJatuhTempo: tgl.toISOString().split('T')[0],
@@ -182,20 +188,22 @@ export async function getPinjamanById(id: string) {
 }
 
 export async function approvePinjaman(id: string, approvedBy: string) {
-  const [row] = await db
+  await db
     .update(pinjaman)
     .set({ status: 'disetujui', approvedBy, approvedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(pinjaman.id, id), eq(pinjaman.status, 'pengajuan')))
-    .returning()
+  
+  const [row] = await db.select().from(pinjaman).where(eq(pinjaman.id, id)).limit(1)
   return row ?? null
 }
 
 export async function cairkanPinjaman(id: string, tanggalCair: string) {
-  const [row] = await db
+  await db
     .update(pinjaman)
     .set({ status: 'cair', tanggalCair, updatedAt: new Date() })
     .where(and(eq(pinjaman.id, id), eq(pinjaman.status, 'disetujui')))
-    .returning()
+
+  const [row] = await db.select().from(pinjaman).where(eq(pinjaman.id, id)).limit(1)
   return row ?? null
 }
 
@@ -218,9 +226,12 @@ export async function bayarAngsuran(params: {
 
   const sisaPinjaman = Number(pinjamanRow.pinjaman.jumlah) - params.pokok
 
-  const [angsuranRow] = await db
+  const angsuranId = crypto.randomUUID()
+
+  await db
     .insert(angsuran)
     .values({
+      id: angsuranId,
       ...params,
       pokok: String(params.pokok),
       bunga: String(params.bunga),
@@ -229,7 +240,8 @@ export async function bayarAngsuran(params: {
       sisaPinjaman: String(Math.max(0, sisaPinjaman)),
       noReferensi: `ANG-${Date.now()}`,
     })
-    .returning()
+
+  const [angsuranRow] = await db.select().from(angsuran).where(eq(angsuran.id, angsuranId)).limit(1)
 
   // Update jadwal status
   await db

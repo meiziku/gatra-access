@@ -1,7 +1,9 @@
 import { db } from '../db'
 import { anggota, userProfiles, user, account } from '../db/schema'
-import { eq, ilike, and, count, desc } from 'drizzle-orm'
+import { eq, like, and, count, desc } from 'drizzle-orm'
 import { z } from 'zod'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 export const createAnggotaSchema = z.object({
   nomorAnggota: z.string().min(1).max(20),
@@ -31,7 +33,7 @@ export async function getAllAnggota(filters: {
 
   const conditions = []
   if (search) {
-    conditions.push(ilike(anggota.nama, `%${search}%`))
+    conditions.push(like(anggota.nama, `%${search}%`))
   }
   if (status) {
     conditions.push(eq(anggota.status, status))
@@ -52,15 +54,14 @@ export async function getAnggotaById(id: string) {
   return row ?? null
 }
 
-import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
-
 export async function createAnggota(input: CreateAnggotaInput, createdBy: string) {
   return await db.transaction(async (tx) => {
-    const [row] = await tx
+    const anggotaId = crypto.randomUUID()
+    await tx
       .insert(anggota)
-      .values({ ...input, createdBy })
-      .returning()
+      .values({ id: anggotaId, ...input, createdBy })
+
+    const [row] = await tx.select().from(anggota).where(eq(anggota.id, anggotaId)).limit(1)
       
     const dummyEmail = `${input.nomorAnggota}@gatra.local`
     const defaultPassword = '123'
@@ -90,6 +91,7 @@ export async function createAnggota(input: CreateAnggotaInput, createdBy: string
     
     // 3. Create userProfile mapped to this anggota
     await tx.insert(userProfiles).values({
+      id: crypto.randomUUID(),
       userId: userId,
       role: 'anggota',
       namaLengkap: input.nama,
@@ -102,31 +104,28 @@ export async function createAnggota(input: CreateAnggotaInput, createdBy: string
 }
 
 export async function updateAnggota(id: string, input: UpdateAnggotaInput) {
-  const [row] = await db
+  await db
     .update(anggota)
     .set({ ...input, updatedAt: new Date() })
     .where(eq(anggota.id, id))
-    .returning()
-  return row ?? null
+  return getAnggotaById(id)
 }
 
 export async function deleteAnggota(id: string) {
   // Soft delete – set status to keluar
-  const [row] = await db
+  await db
     .update(anggota)
     .set({ status: 'keluar', updatedAt: new Date() })
     .where(eq(anggota.id, id))
-    .returning()
-  return row ?? null
+  return getAnggotaById(id)
 }
 
 export async function setAnggotaPhoto(id: string, fotoUrl: string) {
-  const [row] = await db
+  await db
     .update(anggota)
     .set({ fotoUrl, updatedAt: new Date() })
     .where(eq(anggota.id, id))
-    .returning()
-  return row ?? null
+  return getAnggotaById(id)
 }
 
 export async function resetAnggotaPassword(anggotaId: string) {
@@ -140,11 +139,13 @@ export async function resetAnggotaPassword(anggotaId: string) {
   const defaultPassword = '123'
   const hashedPassword = await bcrypt.hash(defaultPassword, 10)
   
-  const [updatedAccount] = await db
+  await db
     .update(account)
     .set({ password: hashedPassword, updatedAt: new Date() })
     .where(eq(account.userId, profile.userId))
-    .returning()
     
+  const updatedAccount = await db.query.account.findFirst({
+    where: eq(account.userId, profile.userId)
+  })
   return updatedAccount ?? null
 }

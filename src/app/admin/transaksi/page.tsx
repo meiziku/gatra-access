@@ -26,6 +26,7 @@ import NeracaBadge from "@/components/NeracaBadge";
 import { useAnggota } from "@/context/AnggotaContext";
 import GajiTPPModal from "@/components/GajiTPPModal";
 import { FileSpreadsheet } from "lucide-react";
+import { downloadTransaksiTemplate } from "@/lib/export-excel";
 
 // Helper untuk format tanggal hari ini DD/MM/YYYY
 const getTodayStr = () => {
@@ -1450,6 +1451,17 @@ export default function TransaksiSPPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center bg-blue-50/70 p-3 rounded-xl border border-blue-100">
+                <span className="text-xs text-blue-800 font-medium">Format file belum sesuai?</span>
+                <button
+                  type="button"
+                  onClick={downloadTransaksiTemplate}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Unduh Template
+                </button>
+              </div>
               <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-xs leading-relaxed border border-blue-100">
                 <strong>Informasi:</strong> Import ini bersifat kumulatif. Data dari Excel hanya akan <strong>menambahkan transaksi baru</strong> dan tidak akan menimpa atau menghapus data transaksi yang sudah ada di sistem.
               </div>
