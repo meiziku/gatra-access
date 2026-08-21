@@ -21,18 +21,22 @@ export default function Home() {
     
     const email = username.includes("@") ? username : `${username}@gatra.local`;
     
-    await signIn.email({
-      email,
-      password,
-    }, {
-      onSuccess: () => {
-        router.push("/admin"); // Or to member dashboard if role allows, but default to admin for now or let the user choose
-      },
-      onError: (ctx) => {
-        setError(ctx.error.message || "Username atau password salah");
-        setIsSubmitting(false);
+    try {
+      const res = await signIn.email({
+        email,
+        password,
+      });
+
+      if (res?.error) {
+        setError(res.error.message || "Username atau password salah");
+      } else {
+        router.push("/admin");
       }
-    });
+    } catch (err: any) {
+      setError(err?.message || "Gagal terhubung ke server backend.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
