@@ -62,11 +62,11 @@ app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'Koperasi Gatra API is running' })
 })
 
-app.get('/health', (_req, res) => {
+app.get(['/health', '/api/health'], (_req, res) => {
   res.json({ status: 'ok', version: 'v3-db-diag', timestamp: new Date().toISOString() })
 })
 
-app.get('/health/db', async (_req, res) => {
+app.get(['/health/db', '/api/health/db'], async (_req, res) => {
   try {
     const result = await db.execute(sql`SELECT 1 as ok`)
     res.json({ status: 'ok', db: 'connected', result, dbUrl: process.env.DATABASE_URL ? 'set (' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NOT SET' })

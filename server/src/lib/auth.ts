@@ -6,6 +6,8 @@ import * as schema from '../db/schema'
 import bcrypt from 'bcryptjs'
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:4000',
+  secret: process.env.BETTER_AUTH_SECRET || 'gatra_secret_key_2026',
   database: drizzleAdapter(db, {
     provider: 'mysql',
     schema: {
