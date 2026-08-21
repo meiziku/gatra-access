@@ -37,8 +37,14 @@ export const auth = betterAuth({
     'https://www.gatrateknika.my.id',
     'http://gatrateknika.my.id',
     'http://www.gatrateknika.my.id',
+    'https://koperasi.mitraproduction.web.id',
+    'http://koperasi.mitraproduction.web.id',
+    'https://login.gatrateknika.my.id',
+    'http://login.gatrateknika.my.id',
     'https://gatra-web-rouge.vercel.app',
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
   ],
 })
 
